@@ -1,0 +1,60 @@
+{
+  "scenario_id": "SCENARIO-017",
+  "title": "Adversarial biological challenge — multiphasic cardiac phenotype",
+  "description": "Illustrative example of a deliberately atypical, multiphasic cardiac challenge profile used for defensive AI evaluation. Encodes only host-response dimensions.",
+  "tissue": "cardiac",
+  "onset": "rapid",
+  "progression": "multiphasic",
+  "phenotypic_axes": {
+    "inflammatory": "substantial",
+    "vascular_endothelial": "substantial",
+    "metabolic_mitochondrial": "moderate",
+    "contractile_functional": "high",
+    "structural_injury": "moderate",
+    "cell_death": "moderate",
+    "remodeling": "low",
+    "recovery_profile": "atypical"
+  },
+  "temporal_profile": {
+    "phases": [
+      {
+        "name": "early inflammatory-vascular",
+        "relative_time": "hours",
+        "dominant_axes": ["inflammatory", "vascular_endothelial"]
+      },
+      {
+        "name": "functional decline",
+        "relative_time": "days",
+        "dominant_axes": ["contractile_functional", "metabolic_mitochondrial"]
+      },
+      {
+        "name": "delayed structural component",
+        "relative_time": "later",
+        "dominant_axes": ["structural_injury", "cell_death"]
+      }
+    ]
+  },
+  "realism_evidence": {
+    "supported_components": [
+      "inflammatory response",
+      "endothelial dysfunction",
+      "contractile impairment"
+    ],
+    "references": [],
+    "proxy_notes": "Axes anchored to publicly described host-response patterns in cardiac injury and inflammatory models; no agent-specific parameters."
+  },
+  "scenario_assumptions": {
+    "model_derived_components": [
+      "temporal progression",
+      "severity combination across axes",
+      "interaction between inflammatory and contractile domains"
+    ],
+    "interaction_hypotheses": [
+      "Substantial early vascular + inflammatory axes amplify later contractile dysfunction beyond simple additive effects"
+    ],
+    "notes": "Combination and timing are computational hypotheses for defensive evaluation, not experimentally established attack recipes."
+  },
+  "confidence": "exploratory",
+  "ood_flag": true,
+  "version": "1.0.0"
+}
