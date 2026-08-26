@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Public host multi-omics accessions that can evidence DCCP phenotypic axes (cardiac injury / inflammation / remodeling). Metadata only — no expression matrices redistributed.",
+  "policy": "public_accession_metadata_only",
+  "axis_evidence": {
+    "inflammatory": {
+      "accessions": ["GSE135310", "GSE216211", "GSE153480"],
+      "notes": "Post-MI immune / inflammatory cell programs in mouse heart"
+    },
+    "vascular_endothelial": {
+      "accessions": ["GSE269054", "GSE185289"],
+      "notes": "Injury borderzone and regeneration-associated vascular programs"
+    },
+    "metabolic_mitochondrial": {
+      "accessions": ["GSE185289", "GSE240848"],
+      "notes": "Injury and maturation-associated metabolic / mitochondrial module shifts"
+    },
+    "contractile_functional": {
+      "accessions": ["GSE185289", "GSE240848", "GSE153480"],
+      "notes": "Cardiomyocyte contractile / sarcomere module depression after injury"
+    },
+    "structural_injury": {
+      "accessions": ["GSE185289", "GSE269054"],
+      "notes": "Fibrotic / structural remodeling signatures post-injury"
+    },
+    "cell_death": {
+      "accessions": ["GSE240848", "GSE153480"],
+      "notes": "Acute injury viability / stress programs (host-side proxies only)"
+    },
+    "remodeling": {
+      "accessions": ["GSE185289", "GSE216211"],
+      "notes": "Late remodeling and macrophage-associated remodeling states"
+    }
+  },
+  "datasets": [
+    {
+      "accession": "GSE185289",
+      "repository": "GEO",
+      "organism": "Sus scrofa",
+      "modality": "snRNA-seq",
+      "roles": ["maturation", "injury", "remodeling", "regeneration"],
+      "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE185289",
+      "status": "metadata_locked"
+    },
+    {
+      "accession": "GSE240848",
+      "repository": "GEO",
+      "organism": "Rattus norvegicus",
+      "modality": "snRNA-seq",
+      "roles": ["acute_mi", "ischemia_reperfusion"],
+      "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE240848",
+      "status": "metadata_locked"
+    },
+    {
+      "accession": "GSE135310",
+      "repository": "GEO",
+      "organism": "Mus musculus",
+      "modality": "scRNA-seq",
+      "roles": ["inflammation", "post_mi_timecourse"],
+      "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE135310",
+      "status": "metadata_locked"
+    },
+    {
+      "accession": "GSE153480",
+      "repository": "GEO",
+      "organism": "Mus musculus",
+      "modality": "scRNA-seq",
+      "roles": ["neonatal_regeneration", "mi_sham"],
+      "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE153480",
+      "status": "metadata_locked"
+    },
+    {
+      "accession": "GSE216211",
+      "repository": "GEO",
+      "organism": "Mus musculus",
+      "modality": "scRNA-seq",
+      "roles": ["macrophage", "remodeling"],
+      "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE216211",
+      "status": "metadata_locked"
+    },
+    {
+      "accession": "GSE269054",
+      "repository": "GEO",
+      "organism": "Homo sapiens; Mus musculus",
+      "modality": "snRNA-seq + spatial",
+      "roles": ["injury_borderzone", "interferon", "mi_ir"],
+      "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE269054",
+      "status": "metadata_locked"
+    }
+  ]
+}
