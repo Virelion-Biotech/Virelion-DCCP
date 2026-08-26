@@ -1,0 +1,60 @@
+{
+  "scenario_id": "SCENARIO-019",
+  "title": "Held-out delayed structural–inflammatory dissociation",
+  "description": "Novel profile with early high functional impairment, delayed severe structural injury, and atypical recovery — multiphasic and held out for OOD detection tests.",
+  "tissue": "cardiac",
+  "onset": "delayed",
+  "progression": "multiphasic",
+  "phenotypic_axes": {
+    "inflammatory": "substantial",
+    "vascular_endothelial": "moderate",
+    "metabolic_mitochondrial": "moderate",
+    "contractile_functional": "severe",
+    "structural_injury": "high",
+    "cell_death": "low",
+    "remodeling": "substantial",
+    "recovery_profile": "atypical"
+  },
+  "temporal_profile": {
+    "phases": [
+      {
+        "name": "functional collapse",
+        "relative_time": "early",
+        "dominant_axes": ["contractile_functional"]
+      },
+      {
+        "name": "inflammatory wave",
+        "relative_time": "mid",
+        "dominant_axes": ["inflammatory", "vascular_endothelial"]
+      },
+      {
+        "name": "structural consolidation",
+        "relative_time": "late",
+        "dominant_axes": ["structural_injury", "remodeling"]
+      }
+    ]
+  },
+  "realism_evidence": {
+    "supported_components": [
+      "contractile impairment",
+      "inflammatory signaling",
+      "fibrotic / structural remodeling"
+    ],
+    "references": [],
+    "proxy_notes": "Phase separation is a computational hypothesis for defensive evaluation."
+  },
+  "scenario_assumptions": {
+    "model_derived_components": [
+      "severe function with low concurrent cell death",
+      "delayed structural peak",
+      "multiphasic interaction order"
+    ],
+    "interaction_hypotheses": [
+      "Functional impairment can precede structural ordinal peaks in atypical multiphasic courses"
+    ],
+    "notes": "Held-out multiphasic challenge."
+  },
+  "confidence": "exploratory",
+  "ood_flag": true,
+  "version": "1.0.0"
+}
