@@ -40,7 +40,7 @@ Free-floating invention without the first three layers is out of scope.
 
 ## Relationship to other Virelion components
 
-- **CardiSim / digital surrogates** may implement dynamics consistent with a scenario’s phenotypic axes; they do not encode agent construction.
+- **CardiSim / digital surrogates** may implement dynamics consistent with a scenario’s phenotypic axes.
 - **CardiBench** may include pathogen-*associated* cardiac phenotype evaluation; metadata remain free of operational biological instructions.
 - **Biosafety-Assessment** tooling remains the reference for laboratory risk framing; DCCP itself is a computational evaluation environment.
 
