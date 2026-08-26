@@ -10,8 +10,11 @@ from pathlib import Path
 from . import __version__
 from .audit import audit_scenario
 from .cardisim_bridge import scenario_to_cardisim_payload
+from .detectors import PrototypeDetector
 from .evaluate import assess_scenario
+from .library import load_library, materialize_challenge_set, write_challenge_set
 from .provenance import scenario_digest
+from .recovery import evaluate_recovery
 from .scenario import load_scenario, validate_scenario
 
 
@@ -80,7 +83,10 @@ def _cmd_audit_all(args: argparse.Namespace) -> int:
 
 def _cmd_assess(args: argparse.Namespace) -> int:
     sc = load_scenario(args.path)
-    assessment = assess_scenario(sc)
+    if args.detector == "prototype":
+        assessment = PrototypeDetector().fit_default_ordinary().assess(sc)
+    else:
+        assessment = assess_scenario(sc)
     if args.json:
         print(json.dumps(assessment.as_dict(), indent=2))
     else:
@@ -112,8 +118,100 @@ def _cmd_bridge(args: argparse.Namespace) -> int:
 def _cmd_hash(args: argparse.Namespace) -> int:
     path = Path(args.path)
     data = json.loads(path.read_text(encoding="utf-8"))
-    digest = scenario_digest(data)
-    print(digest)
+    print(scenario_digest(data))
+    return 0
+
+
+def _cmd_materialize(args: argparse.Namespace) -> int:
+    out = Path(args.output)
+    write_challenge_set(out, args.root)
+    payload = materialize_challenge_set(args.root)
+    print(f"Wrote challenge set → {out}")
+    print(f"cases={payload['n_cases']} ood={payload['n_ood']} set_hash={payload['set_hash'][:16]}…")
+    return 0
+
+
+def _cmd_list(args: argparse.Namespace) -> int:
+    for e in load_library(args.root):
+        flag = "OOD" if e.scenario.ood_flag else "   "
+        print(f"{e.scenario.scenario_id:16s} {flag}  {e.scenario.confidence:12s}  {e.path.name}")
+    return 0
+
+
+def _cmd_recovery_demo(args: argparse.Namespace) -> int:
+    if args.baseline and args.challenged and args.rescued:
+        baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
+        challenged = json.loads(Path(args.challenged).read_text(encoding="utf-8"))
+        rescued = json.loads(Path(args.rescued).read_text(encoding="utf-8"))
+    else:
+        baseline = {
+            "contractility": 0.62,
+            "viability": 0.96,
+            "inflammation": 0.10,
+            "mitochondrial_health": 0.63,
+            "oxidative_stress": 0.15,
+            "fibrosis": 0.08,
+            "metabolism": 0.55,
+        }
+        challenged = {
+            "contractility": 0.28,
+            "viability": 0.55,
+            "inflammation": 0.72,
+            "mitochondrial_health": 0.30,
+            "oxidative_stress": 0.58,
+            "fibrosis": 0.40,
+            "metabolism": 0.32,
+        }
+        rescued = {
+            "contractility": 0.48,
+            "viability": 0.78,
+            "inflammation": 0.35,
+            "mitochondrial_health": 0.50,
+            "oxidative_stress": 0.28,
+            "fibrosis": 0.28,
+            "metabolism": 0.45,
+        }
+    report = evaluate_recovery(
+        scenario_id=args.scenario_id,
+        intervention_name=args.intervention,
+        baseline=baseline,
+        challenged=challenged,
+        rescued=rescued,
+    )
+    print(json.dumps(report.as_dict(), indent=2))
+    return 0
+
+
+def _cmd_surrogate(args: argparse.Namespace) -> int:
+    sc = load_scenario(args.path)
+    from .surrogate import run_challenge_with_rescue, run_scenario_surrogate
+
+    try:
+        if args.rescue:
+            challenged, rescued, report = run_challenge_with_rescue(
+                sc,
+                duration=args.duration,
+                n_cells=args.cells,
+                seed=args.seed,
+            )
+            out = {
+                "challenged": challenged,
+                "rescued": rescued,
+                "recovery": report.as_dict(),
+            }
+        else:
+            out = run_scenario_surrogate(
+                sc, duration=args.duration, n_cells=args.cells, seed=args.seed
+            )
+    except ImportError as e:
+        print(str(e), file=sys.stderr)
+        return 2
+    text = json.dumps(out, indent=2)
+    if args.output:
+        Path(args.output).write_text(text + "\n", encoding="utf-8")
+        print(f"Wrote → {args.output}")
+    else:
+        print(text)
     return 0
 
 
@@ -126,34 +224,61 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_val = sub.add_parser("validate", help="Validate a scenario against the JSON Schema")
-    p_val.add_argument("path", help="Path to scenario JSON")
+    p_val.add_argument("path")
     p_val.set_defaults(func=_cmd_validate)
 
     p_aud = sub.add_parser("audit", help="Schema + policy audit of a scenario")
-    p_aud.add_argument("path", help="Path to scenario JSON")
+    p_aud.add_argument("path")
     p_aud.set_defaults(func=_cmd_audit)
 
     p_show = sub.add_parser("show", help="Pretty-print a validated scenario")
-    p_show.add_argument("path", help="Path to scenario JSON")
+    p_show.add_argument("path")
     p_show.set_defaults(func=_cmd_show)
 
     p_all = sub.add_parser("audit-all", help="Audit all JSON files under a directory")
-    p_all.add_argument("root", nargs="?", default="scenarios", help="Root directory (default: scenarios)")
+    p_all.add_argument("root", nargs="?", default="scenarios")
     p_all.set_defaults(func=_cmd_audit_all)
 
     p_assess = sub.add_parser("assess", help="Defensive assessment (abnormality / mechanism / OOD)")
-    p_assess.add_argument("path", help="Path to scenario JSON")
-    p_assess.add_argument("--json", action="store_true", help="Emit JSON")
+    p_assess.add_argument("path")
+    p_assess.add_argument("--json", action="store_true")
+    p_assess.add_argument("--detector", choices=("heuristic", "prototype"), default="heuristic")
     p_assess.set_defaults(func=_cmd_assess)
 
     p_bridge = sub.add_parser("bridge", help="Emit CardiSim-compatible event payload")
-    p_bridge.add_argument("path", help="Path to scenario JSON")
-    p_bridge.add_argument("-o", "--output", help="Write JSON to file instead of stdout")
+    p_bridge.add_argument("path")
+    p_bridge.add_argument("-o", "--output")
     p_bridge.set_defaults(func=_cmd_bridge)
 
     p_hash = sub.add_parser("hash", help="Canonical SHA-256 of a scenario JSON")
-    p_hash.add_argument("path", help="Path to scenario JSON")
+    p_hash.add_argument("path")
     p_hash.set_defaults(func=_cmd_hash)
+
+    p_mat = sub.add_parser("materialize", help="Write hashed challenge set for evaluation / CardiBench")
+    p_mat.add_argument("--root", default="scenarios")
+    p_mat.add_argument("-o", "--output", default="benchmarks/dccp-challenge-set.v1.json")
+    p_mat.set_defaults(func=_cmd_materialize)
+
+    p_list = sub.add_parser("list", help="List scenarios in the library")
+    p_list.add_argument("--root", default="scenarios")
+    p_list.set_defaults(func=_cmd_list)
+
+    p_rec = sub.add_parser("recovery-demo", help="Score recovery from state dicts (or built-in demo)")
+    p_rec.add_argument("--baseline")
+    p_rec.add_argument("--challenged")
+    p_rec.add_argument("--rescued")
+    p_rec.add_argument("--scenario-id", default="DEMO")
+    p_rec.add_argument("--intervention", default="host_resilience_intervention")
+    p_rec.set_defaults(func=_cmd_recovery_demo)
+
+    p_sur = sub.add_parser("surrogate", help="Run CardiSim surrogate (requires cardisim)")
+    p_sur.add_argument("path")
+    p_sur.add_argument("--rescue", action="store_true")
+    p_sur.add_argument("--duration", type=float, default=28.0)
+    p_sur.add_argument("--cells", type=int, default=64)
+    p_sur.add_argument("--seed", type=int, default=7)
+    p_sur.add_argument("-o", "--output")
+    p_sur.set_defaults(func=_cmd_surrogate)
 
     args = parser.parse_args(argv)
     return args.func(args)
