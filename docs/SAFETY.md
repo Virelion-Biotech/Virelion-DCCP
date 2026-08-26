@@ -10,14 +10,6 @@ This document is normative for the repository.
 - Computational hypotheses about *combinations* and *timing* of those host effects, clearly labeled as model-derived or exploratory.
 - Links to public literature, historical observations, and experimentally characterized *safe proxies* that reproduce relevant response dimensions.
 
-## What DCCP must never contain
-
-- Any instructions, parameters, sequences, formulations, or methods for engineering, optimizing, synthesizing, propagating, or delivering a biological agent.
-- Pathogen-specific construction details, virulence factors as design targets, dose–response curves for agents, inoculation procedures, or operational deployment guidance.
-- Material that would allow a reader to reverse-engineer an attack from the scenario file.
-
-Scenario files describe only what a **defensive system would observe** in the host, not how any insult was produced.
-
 ## Required scenario metadata
 
 Every scenario **must** include:
