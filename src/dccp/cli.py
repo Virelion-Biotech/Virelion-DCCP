@@ -9,6 +9,9 @@ from pathlib import Path
 
 from . import __version__
 from .audit import audit_scenario
+from .cardisim_bridge import scenario_to_cardisim_payload
+from .evaluate import assess_scenario
+from .provenance import scenario_digest
 from .scenario import load_scenario, validate_scenario
 
 
@@ -75,6 +78,45 @@ def _cmd_audit_all(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _cmd_assess(args: argparse.Namespace) -> int:
+    sc = load_scenario(args.path)
+    assessment = assess_scenario(sc)
+    if args.json:
+        print(json.dumps(assessment.as_dict(), indent=2))
+    else:
+        d = assessment.as_dict()
+        print(f"scenario_id     : {d['scenario_id']}")
+        print(f"abnormal        : {d['abnormal']} (score={d['abnormality_score']})")
+        print(f"nearest ordinary: {d['nearest_ordinary']} (dist={d['distance_to_nearest_ordinary']})")
+        print(f"ood_suggested   : {d['ood_suggested']}")
+        print("mechanism profile:")
+        for k, v in d["mechanism_profile"].items():
+            print(f"  {k:28s} {v}")
+        for n in d["notes"]:
+            print(f"note: {n}")
+    return 0
+
+
+def _cmd_bridge(args: argparse.Namespace) -> int:
+    sc = load_scenario(args.path)
+    payload = scenario_to_cardisim_payload(sc)
+    text = json.dumps(payload, indent=2)
+    if args.output:
+        Path(args.output).write_text(text + "\n", encoding="utf-8")
+        print(f"Wrote CardiSim payload → {args.output}")
+    else:
+        print(text)
+    return 0
+
+
+def _cmd_hash(args: argparse.Namespace) -> int:
+    path = Path(args.path)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    digest = scenario_digest(data)
+    print(digest)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="dccp",
@@ -98,6 +140,20 @@ def main(argv: list[str] | None = None) -> int:
     p_all = sub.add_parser("audit-all", help="Audit all JSON files under a directory")
     p_all.add_argument("root", nargs="?", default="scenarios", help="Root directory (default: scenarios)")
     p_all.set_defaults(func=_cmd_audit_all)
+
+    p_assess = sub.add_parser("assess", help="Defensive assessment (abnormality / mechanism / OOD)")
+    p_assess.add_argument("path", help="Path to scenario JSON")
+    p_assess.add_argument("--json", action="store_true", help="Emit JSON")
+    p_assess.set_defaults(func=_cmd_assess)
+
+    p_bridge = sub.add_parser("bridge", help="Emit CardiSim-compatible event payload")
+    p_bridge.add_argument("path", help="Path to scenario JSON")
+    p_bridge.add_argument("-o", "--output", help="Write JSON to file instead of stdout")
+    p_bridge.set_defaults(func=_cmd_bridge)
+
+    p_hash = sub.add_parser("hash", help="Canonical SHA-256 of a scenario JSON")
+    p_hash.add_argument("path", help="Path to scenario JSON")
+    p_hash.set_defaults(func=_cmd_hash)
 
     args = parser.parse_args(argv)
     return args.func(args)
