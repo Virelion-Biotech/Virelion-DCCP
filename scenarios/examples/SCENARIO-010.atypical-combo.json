@@ -1,0 +1,60 @@
+{
+  "scenario_id": "SCENARIO-010",
+  "title": "Atypical multi-axis combination (non-stereotypical)",
+  "description": "Deliberately atypical combination: high endothelial + metabolic stress with only moderate inflammation and delayed structural injury — outside single-disease stereotypes but still within plausible host-response space.",
+  "tissue": "cardiac",
+  "onset": "rapid",
+  "progression": "multiphasic",
+  "phenotypic_axes": {
+    "inflammatory": "moderate",
+    "vascular_endothelial": "high",
+    "metabolic_mitochondrial": "high",
+    "contractile_functional": "substantial",
+    "structural_injury": "moderate",
+    "cell_death": "low",
+    "remodeling": "low",
+    "recovery_profile": "atypical"
+  },
+  "temporal_profile": {
+    "phases": [
+      {
+        "name": "vascular-metabolic surge",
+        "relative_time": "early",
+        "dominant_axes": ["vascular_endothelial", "metabolic_mitochondrial"]
+      },
+      {
+        "name": "functional impairment",
+        "relative_time": "mid",
+        "dominant_axes": ["contractile_functional"]
+      },
+      {
+        "name": "delayed structure",
+        "relative_time": "late",
+        "dominant_axes": ["structural_injury"]
+      }
+    ]
+  },
+  "realism_evidence": {
+    "supported_components": [
+      "endothelial dysfunction",
+      "mitochondrial disturbance",
+      "contractile impairment"
+    ],
+    "references": [],
+    "proxy_notes": "Individual axes are literature-supported host responses; the *combination and timing* are the atypical element under test."
+  },
+  "scenario_assumptions": {
+    "model_derived_components": [
+      "severity combination across axes",
+      "multiphasic timing",
+      "low cell-death relative to functional impairment"
+    ],
+    "interaction_hypotheses": [
+      "High vascular + metabolic axes can drive substantial contractile loss without proportional acute cell death"
+    ],
+    "notes": "Atypical but not fully held-out; used to test abnormality recognition beyond ordinary disease labels."
+  },
+  "confidence": "exploratory",
+  "ood_flag": false,
+  "version": "1.0.0"
+}
