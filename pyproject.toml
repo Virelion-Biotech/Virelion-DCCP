@@ -52,7 +52,7 @@ Repository = "https://github.com/Virelion-Biotech/Virelion-DCCP"
 where = ["src"]
 
 [tool.setuptools.package-data]
-dccp = ["py.typed"]
+dccp = ["py.typed", "data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
