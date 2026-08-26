@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "virelion-dccp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Defensive Computational Challenge Platform for human cardiac models — adversarial phenotypic scenario library and evaluation harness."
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }
@@ -40,6 +40,8 @@ test = [
   "pytest>=7.4",
   "pytest-cov>=4.1",
 ]
+# Optional: install Virelion-CardiSim separately for surrogate runs.
+# cardisim = []  # declared empty; path install: pip install -e ../Virelion-CardiSim
 
 [project.scripts]
 dccp = "dccp.cli:main"
