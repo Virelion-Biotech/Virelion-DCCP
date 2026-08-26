@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "virelion-dccp"
+version = "0.1.0"
+description = "Defensive Computational Challenge Platform for human cardiac models — adversarial phenotypic scenario library and evaluation harness."
+readme = "README.md"
+license = { text = "AGPL-3.0-or-later" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Virelion Biotech" },
+]
+keywords = [
+  "cardiac",
+  "defensive-ai",
+  "phenotypic-challenge",
+  "ood-detection",
+  "biosafety",
+  "computational-biology",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "jsonschema>=4.20",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+]
+
+[project.scripts]
+dccp = "dccp.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Virelion-Biotech/Virelion-DCCP"
+Repository = "https://github.com/Virelion-Biotech/Virelion-DCCP"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+dccp = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
