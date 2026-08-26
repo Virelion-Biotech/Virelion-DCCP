@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "virelion-dccp"
-version = "0.2.0"
-description = "Defensive Computational Challenge Platform for human cardiac models — adversarial phenotypic scenario library and evaluation harness."
+version = "0.3.0"
+description = "Defensive Computational Challenge Platform for human cardiac models — host multi-omics to phenotypic axes, adversarial challenge library, evaluation harness."
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.10"
@@ -19,6 +19,7 @@ keywords = [
   "ood-detection",
   "biosafety",
   "computational-biology",
+  "multi-omics",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -40,8 +41,6 @@ test = [
   "pytest>=7.4",
   "pytest-cov>=4.1",
 ]
-# Optional: install Virelion-CardiSim separately for surrogate runs.
-# cardisim = []  # declared empty; path install: pip install -e ../Virelion-CardiSim
 
 [project.scripts]
 dccp = "dccp.cli:main"
