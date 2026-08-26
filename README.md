@@ -154,7 +154,7 @@ All synthetic material is anchored to the first three layers.
 - Experimental proxies are limited to safe, publicly documented, or computationally synthesized response profiles.
 - All scenario files must include explicit realism-evidence and assumption blocks so computational hypotheses are never presented as experimentally established facts.
 
-This design is aligned with the defensive modeling principles reflected in current DoD/CBDP and DARPA host-resilience and threat-characterization directions: predictive modeling of host responses, threat-agnostic tools, and safe characterization processes that avoid exposure of sensitive operational information.
+See [`docs/SAFETY.md`](docs/SAFETY.md) for the normative policy.
 
 ---
 
@@ -172,26 +172,63 @@ DCCP supplies the *challenge* side; the other repositories supply the *surrogate
 
 ---
 
-## Repository layout (initial)
+## Install & CLI
+
+```bash
+pip install -e '.[test]'
+pytest -q
+
+dccp audit-all scenarios
+dccp assess scenarios/examples/SCENARIO-017.example.json
+dccp bridge scenarios/examples/SCENARIO-001.ordinary-mi.json
+dccp hash scenarios/examples/SCENARIO-001.ordinary-mi.json
+```
+
+| Command | Purpose |
+|---------|---------|
+| `dccp validate PATH` | JSON Schema validation |
+| `dccp audit PATH` | Schema + dual-use policy audit |
+| `dccp audit-all [DIR]` | Audit all scenario JSON under a tree |
+| `dccp show PATH` | Pretty-print axes |
+| `dccp assess PATH` | Abnormality / mechanism / OOD heuristic assessment |
+| `dccp bridge PATH` | Emit CardiSim-compatible event payload |
+| `dccp hash PATH` | Canonical SHA-256 of scenario JSON |
+
+---
+
+## Scenario ladder (examples)
+
+| ID | Role |
+|----|------|
+| `SCENARIO-001` | Ordinary MI-like pathology anchor |
+| `SCENARIO-002` | Hypoxia-like ordinary metabolic-vascular anchor |
+| `SCENARIO-010` | Atypical multi-axis combination |
+| `SCENARIO-017` | Held-out / novel multiphasic challenge (`ood_flag: true`) |
+
+---
+
+## Repository layout
 
 ```text
 Virelion-DCCP/
-├── LICENSE                 # AGPL-3.0
+├── LICENSE
 ├── README.md
 ├── pyproject.toml
-├── schemas/
-│   └── scenario.schema.json
-├── scenarios/
-│   └── examples/
-│       └── SCENARIO-017.example.json
-├── src/
-│   └── dccp/
-│       ├── __init__.py
-│       ├── scenario.py
-│       └── audit.py
-├── docs/
-│   ├── DESIGN.md
-│   └── SAFETY.md
+├── schemas/scenario.schema.json
+├── scenarios/examples/
+│   ├── SCENARIO-001.ordinary-mi.json
+│   ├── SCENARIO-002.hypoxia-like.json
+│   ├── SCENARIO-010.atypical-combo.json
+│   └── SCENARIO-017.example.json
+├── src/dccp/
+│   ├── scenario.py          # load + schema validate
+│   ├── audit.py             # policy audit
+│   ├── evaluate.py          # defensive assessment heuristics
+│   ├── cardisim_bridge.py   # axes → CardiSim event specs
+│   ├── provenance.py        # canonical hashing
+│   └── cli.py
+├── docs/DESIGN.md
+├── docs/SAFETY.md
 └── tests/
 ```
 
@@ -199,8 +236,8 @@ Virelion-DCCP/
 
 ## Status
 
-**Scaffold / design capture.**  
-Core concepts, safety boundary, scenario representation principles, and six evaluation questions are locked. Implementation of the scenario library, digital-surrogate interfaces, and defensive-AI evaluation harness is in progress.
+**v0.1.0 — working scaffold.**  
+Scenario schema, policy audit, example ladder, CardiSim bridge, defensive assessment heuristics, provenance hashing, CLI, and CI are in place. Countermeasure/recovery evaluation and learned defensive models are next.
 
 ---
 
