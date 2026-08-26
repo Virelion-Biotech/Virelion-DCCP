@@ -8,11 +8,13 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .accession_provenance import evidence_bundle_for_accessions, panel_accession_records
 from .audit import audit_scenario
 from .cardisim_bridge import scenario_to_cardisim_payload
 from .detectors import PrototypeDetector
 from .evaluate import assess_scenario
 from .library import load_library, materialize_challenge_set, write_challenge_set
+from .omics_map import draft_scenario_from_scores, load_host_evidence_panel, map_module_scores_to_axes
 from .provenance import scenario_digest
 from .recovery import evaluate_recovery
 from .scenario import load_scenario, validate_scenario
@@ -215,6 +217,54 @@ def _cmd_surrogate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_host_panel(args: argparse.Namespace) -> int:
+    panel = load_host_evidence_panel()
+    if args.json:
+        print(json.dumps(panel, indent=2))
+    else:
+        for ds in panel.get("datasets") or []:
+            print(f"{ds['accession']:12s}  {ds.get('organism', ''):28s}  {', '.join(ds.get('roles') or [])}")
+        print("\naxis → accessions:")
+        for axis, meta in (panel.get("axis_evidence") or {}).items():
+            print(f"  {axis:28s} {', '.join(meta.get('accessions') or [])}")
+    return 0
+
+
+def _cmd_map_scores(args: argparse.Namespace) -> int:
+    scores: dict[str, float] = {}
+    for part in args.scores.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        k, v = part.split("=")
+        scores[k.strip()] = float(v.strip())
+    mapped = map_module_scores_to_axes(scores)
+    if args.draft_id:
+        draft = draft_scenario_from_scores(
+            scores,
+            scenario_id=args.draft_id,
+            title=args.title or f"Host-derived {args.draft_id}",
+            ood_flag=args.ood,
+            confidence=args.confidence,
+        )
+        clean = {k: v for k, v in draft.items() if not k.startswith("_")}
+        text = json.dumps(clean, indent=2)
+        if args.output:
+            Path(args.output).write_text(text + "\n", encoding="utf-8")
+            print(f"Wrote scenario draft → {args.output}")
+        else:
+            print(text)
+    else:
+        print(json.dumps(mapped.as_dict(), indent=2))
+    return 0
+
+
+def _cmd_accession_digest(args: argparse.Namespace) -> int:
+    bundle = evidence_bundle_for_accessions(args.accessions)
+    print(json.dumps(bundle, indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="dccp",
@@ -279,6 +329,27 @@ def main(argv: list[str] | None = None) -> int:
     p_sur.add_argument("--seed", type=int, default=7)
     p_sur.add_argument("-o", "--output")
     p_sur.set_defaults(func=_cmd_surrogate)
+
+    p_hp = sub.add_parser("host-panel", help="Show host multi-omics evidence panel (GEO metadata)")
+    p_hp.add_argument("--json", action="store_true")
+    p_hp.set_defaults(func=_cmd_host_panel)
+
+    p_ms = sub.add_parser("map-scores", help="Map continuous host module scores → ordinal axes / scenario draft")
+    p_ms.add_argument(
+        "--scores",
+        required=True,
+        help="Comma list axis=float in [0,1], e.g. inflammatory=0.7,contractile_functional=0.6",
+    )
+    p_ms.add_argument("--draft-id", help="If set, emit full scenario JSON with this scenario_id")
+    p_ms.add_argument("--title")
+    p_ms.add_argument("--ood", action="store_true")
+    p_ms.add_argument("--confidence", default="moderate")
+    p_ms.add_argument("-o", "--output")
+    p_ms.set_defaults(func=_cmd_map_scores)
+
+    p_ad = sub.add_parser("accession-digest", help="Accession-level provenance bundle (CardiBench leakage note)")
+    p_ad.add_argument("accessions", nargs="+")
+    p_ad.set_defaults(func=_cmd_accession_digest)
 
     args = parser.parse_args(argv)
     return args.func(args)
