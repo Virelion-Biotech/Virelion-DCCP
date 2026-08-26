@@ -1,0 +1,41 @@
+{
+  "scenario_id": "SCENARIO-021",
+  "title": "Held-out host phenotype — maturity-discordant injury vector",
+  "description": "Host profile with high remodeling + structural axes but low acute inflammation and severe metabolic stress — discordant with stereotypical acute MI module patterns; for OOD host-phenotype detection.",
+  "tissue": "cardiac",
+  "onset": "insidious",
+  "progression": "progressive",
+  "phenotypic_axes": {
+    "inflammatory": "low",
+    "vascular_endothelial": "moderate",
+    "metabolic_mitochondrial": "severe",
+    "contractile_functional": "substantial",
+    "structural_injury": "high",
+    "cell_death": "moderate",
+    "remodeling": "high",
+    "recovery_profile": "incomplete"
+  },
+  "realism_evidence": {
+    "supported_components": [
+      "metabolic / mitochondrial host modules",
+      "fibrotic / structural remodeling modules",
+      "contractile module depression"
+    ],
+    "references": [
+      "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE185289",
+      "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE240848"
+    ],
+    "proxy_notes": "Anchored to public maturation/injury GEO metadata roles; combination is exploratory held-out host vector."
+  },
+  "scenario_assumptions": {
+    "model_derived_components": [
+      "low inflammation with high remodeling",
+      "severe metabolic ordinal without classic inflammatory peak"
+    ],
+    "interaction_hypotheses": [],
+    "notes": "Held-out host phenotype for maturity/injury discordance tests."
+  },
+  "confidence": "exploratory",
+  "ood_flag": true,
+  "version": "1.0.0"
+}
