@@ -9,22 +9,25 @@ from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
 
-# Schema is kept next to the package for runtime validation; the canonical
-# copy also lives at schemas/scenario.schema.json in the repo root.
-_SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schemas" / "scenario.schema.json"
+# Candidate locations for the canonical scenario schema.
+_SCHEMA_CANDIDATES = [
+    Path(__file__).resolve().parents[2] / "schemas" / "scenario.schema.json",  # repo root
+    Path(__file__).resolve().parent / "data" / "scenario.schema.json",  # packaged
+]
 
-_AXIS_LEVELS = ("none", "low", "moderate", "substantial", "high", "severe")
-_CONFIDENCE = ("high", "moderate", "exploratory")
+
+def _resolve_schema_path() -> Path:
+    for p in _SCHEMA_CANDIDATES:
+        if p.is_file():
+            return p
+    raise FileNotFoundError(
+        "scenario.schema.json not found. Expected under repo schemas/ "
+        "or package data/"
+    )
 
 
 def _load_schema() -> dict[str, Any]:
-    if not _SCHEMA_PATH.is_file():
-        # Fallback for editable installs / alternate layouts
-        alt = Path(__file__).resolve().parents[1] / "schemas" / "scenario.schema.json"
-        path = alt if alt.is_file() else _SCHEMA_PATH
-    else:
-        path = _SCHEMA_PATH
-    with path.open(encoding="utf-8") as f:
+    with _resolve_schema_path().open(encoding="utf-8") as f:
         return json.load(f)
 
 
