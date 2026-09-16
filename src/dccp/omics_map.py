@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import itertools
 import json
+import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from .host_modules import DCCP_AXIS_MODULES, ORDINAL_LEVELS, module_coverage
 from .provenance import canonical_hash
@@ -18,20 +21,23 @@ def _validate_thresholds(thresholds: Sequence[float]) -> tuple[float, ...]:
     expected = len(ORDINAL_LEVELS) - 1
     if len(values) != expected:
         raise ValueError(f"thresholds must contain exactly {expected} values")
-    if any(not 0.0 <= t <= 1.0 for t in values):
-        raise ValueError("thresholds must all be within [0, 1]")
-    if any(left >= right for left, right in zip(values, values[1:])):
+    if any(not math.isfinite(t) or not 0.0 <= t <= 1.0 for t in values):
+        raise ValueError("thresholds must all be finite and within [0, 1]")
+    if any(left >= right for left, right in itertools.pairwise(values)):
         raise ValueError("thresholds must be strictly increasing")
     return values
 
 
 def score_to_ordinal(score: float, thresholds: Sequence[float] = DEFAULT_THRESHOLDS) -> str:
-    """Map a [0, 1] score to none < low < ... < severe."""
+    """Map a finite [0, 1] score to none < low < ... < severe."""
     values = _validate_thresholds(thresholds)
-    s = max(0.0, min(1.0, float(score)))
-    for i, threshold in enumerate(values):
+    s = float(score)
+    if not math.isfinite(s):
+        raise ValueError("score must be finite")
+    s = max(0.0, min(1.0, s))
+    for index, threshold in enumerate(values):
         if s < threshold:
-            return ORDINAL_LEVELS[i]
+            return ORDINAL_LEVELS[index]
     return ORDINAL_LEVELS[-1]
 
 
@@ -69,8 +75,9 @@ def map_module_scores_to_axes(
 ) -> AxisScoreResult:
     """Convert continuous host module scores to DCCP ordinal axes."""
     values = _validate_thresholds(thresholds)
-    if not 0.0 <= float(min_coverage) <= 1.0:
-        raise ValueError("min_coverage must be within [0, 1]")
+    min_coverage = float(min_coverage)
+    if not math.isfinite(min_coverage) or not 0.0 <= min_coverage <= 1.0:
+        raise ValueError("min_coverage must be finite and within [0, 1]")
     continuous: dict[str, float] = {}
     ordinal: dict[str, str] = {}
     notes: list[str] = []
@@ -82,6 +89,8 @@ def map_module_scores_to_axes(
 
     for axis in DCCP_AXIS_MODULES:
         raw = float(scores.get(axis, 0.0))
+        if not math.isfinite(raw):
+            raise ValueError(f"score for {axis} must be finite")
         continuous[axis] = max(0.0, min(1.0, raw))
         cov = coverage[axis]
         if genes_present is not None and cov < min_coverage:
@@ -90,13 +99,7 @@ def map_module_scores_to_axes(
         else:
             ordinal[axis] = score_to_ordinal(continuous[axis], values)
 
-    return AxisScoreResult(
-        continuous=continuous,
-        ordinal=ordinal,
-        coverage=coverage,
-        thresholds=values,
-        notes=notes,
-    )
+    return AxisScoreResult(continuous, ordinal, coverage, values, notes)
 
 
 def load_host_evidence_panel(path: str | Path | None = None) -> dict[str, Any]:
@@ -145,10 +148,7 @@ def realism_evidence_for_axes(
             f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={accession}"
             for accession in accessions
         ],
-        "proxy_notes": (
-            "Ordinal axes derived from host gene-module scores; "
-            "accessions are public GEO metadata anchors, not redistributed matrices."
-        ),
+        "proxy_notes": "Ordinal axes derived from host gene-module scores; accessions are public GEO metadata anchors, not redistributed matrices.",
         "accessions": accessions,
     }
 

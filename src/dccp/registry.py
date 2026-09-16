@@ -25,11 +25,7 @@ class RegistryEntry:
 
 
 def build_registry(root: str | Path = "scenarios") -> list[RegistryEntry]:
-    """Discover JSON scenarios and record auditable metadata.
-
-    Invalid/unreadable JSON is surfaced rather than silently omitted, so a
-    release cannot accidentally pass because a scenario disappeared from the registry.
-    """
+    """Discover JSON scenarios and record auditable metadata."""
     root = Path(root)
     if not root.is_dir():
         raise FileNotFoundError(f"scenario root does not exist: {root}")
@@ -41,11 +37,11 @@ def build_registry(root: str | Path = "scenarios") -> list[RegistryEntry]:
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise ValueError(f"unable to read scenario JSON {path}: {exc}") from exc
         if not isinstance(payload, dict):
-            raise ValueError(f"scenario JSON must be an object: {path}")
-        result = audit_scenario(payload)
+            raise TypeError(f"scenario JSON must be an object: {path}")
         scenario = payload.get("scenario") or payload
         if not isinstance(scenario, dict):
-            raise ValueError(f"scenario payload must be an object: {path}")
+            raise TypeError(f"scenario payload must be an object: {path}")
+        result = audit_scenario(scenario)
         scenario_id = str(scenario.get("scenario_id", path.stem))
         entries.append(
             RegistryEntry(
@@ -61,7 +57,7 @@ def build_registry(root: str | Path = "scenarios") -> list[RegistryEntry]:
 
     ids = [entry.scenario_id for entry in entries]
     if len(ids) != len(set(ids)):
-        duplicates = sorted({sid for sid in ids if ids.count(sid) > 1})
+        duplicates = sorted({scenario_id for scenario_id in ids if ids.count(scenario_id) > 1})
         raise ValueError(f"duplicate scenario_id values in registry: {', '.join(duplicates)}")
     return entries
 

@@ -1,19 +1,47 @@
 """Release-readiness gates for challenge sets and benchmark artifacts."""
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
+from .integrity import verify_file_hashes
 
-def release_gate(registry: dict[str, Any], *, require_all_audited: bool = True) -> dict[str, Any]:
-    entries = registry.get("entries", [])
-    failures = []
+
+def release_gate(
+    registry: dict[str, Any],
+    *,
+    require_all_audited: bool = True,
+    base_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Validate registry structure, audit status, fingerprints, and optionally files."""
+    entries = registry.get("entries")
+    failures: list[dict[str, Any]] = []
+    if not isinstance(entries, list) or not entries:
+        return {"passed": False, "n_entries": 0, "failures": [{"scenario_id": None, "reason": "empty_registry"}]}
+
+    seen: set[str] = set()
     for entry in entries:
-        if require_all_audited and not entry.get("audit_passed", False):
-            failures.append({"scenario_id": entry.get("scenario_id"), "reason": "audit_failed"})
-        if not entry.get("content_sha256"):
-            failures.append({"scenario_id": entry.get("scenario_id"), "reason": "missing_fingerprint"})
-    return {
-        "passed": not failures and bool(entries),
-        "n_entries": len(entries),
-        "failures": failures,
-    }
+        if not isinstance(entry, dict):
+            failures.append({"scenario_id": None, "reason": "invalid_entry"})
+            continue
+        scenario_id = str(entry.get("scenario_id", "")).strip()
+        if not scenario_id:
+            failures.append({"scenario_id": None, "reason": "missing_scenario_id"})
+        elif scenario_id in seen:
+            failures.append({"scenario_id": scenario_id, "reason": "duplicate_scenario_id"})
+        else:
+            seen.add(scenario_id)
+        if not str(entry.get("path", "")).strip():
+            failures.append({"scenario_id": scenario_id or None, "reason": "missing_path"})
+        if require_all_audited and not bool(entry.get("audit_passed", False)):
+            failures.append({"scenario_id": scenario_id or None, "reason": "audit_failed"})
+        digest = str(entry.get("content_sha256", "")).strip().lower()
+        if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
+            failures.append({"scenario_id": scenario_id or None, "reason": "missing_or_invalid_fingerprint"})
+
+    if base_dir is not None and not failures:
+        manifest = {"files": [{"path": entry["path"], "sha256": entry["content_sha256"]} for entry in entries]}
+        for issue in verify_file_hashes(manifest, base_dir):
+            failures.append({"scenario_id": None, "reason": issue.kind, "path": issue.path, "detail": issue.detail})
+
+    return {"passed": not failures, "n_entries": len(entries), "failures": failures}

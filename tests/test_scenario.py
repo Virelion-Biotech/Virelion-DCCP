@@ -5,10 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
-from dccp.scenario import Scenario, load_scenario, validate_scenario
 from dccp.audit import audit_scenario
+from dccp.scenario import Scenario, load_scenario, validate_scenario
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "scenarios" / "examples" / "SCENARIO-017.example.json"
@@ -42,7 +40,7 @@ def test_audit_example_passes():
 def test_missing_required_fails():
     data = {"scenario_id": "SCENARIO-001", "title": "x"}
     errors = validate_scenario(data)
-    assert errors  # missing tissue, axes, evidence, etc.
+    assert errors
 
 
 def test_audit_rejects_empty_supported_components():
@@ -51,4 +49,4 @@ def test_audit_rejects_empty_supported_components():
     data["realism_evidence"] = {"supported_components": []}
     result = audit_scenario(data)
     assert not result.passed
-    assert any("supported_components" in e for e in result.policy_errors)
+    assert any("supported_components" in error for error in result.policy_errors)
