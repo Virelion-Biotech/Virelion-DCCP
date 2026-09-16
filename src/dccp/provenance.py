@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
 from .fingerprint import content_hash
+
+_SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
 def canonical_hash(obj: Any) -> str:
@@ -27,11 +30,17 @@ def run_provenance(
     extra: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a provenance record for an evaluation or surrogate run."""
-    if not str(scenario_id).strip():
+    scenario_id = str(scenario_id).strip()
+    scenario_hash = str(scenario_hash).strip()
+    tool = str(tool).strip()
+    tool_version = str(tool_version).strip()
+    if not scenario_id:
         raise ValueError("scenario_id must be non-empty")
-    if not str(tool).strip():
+    if not _SHA256_RE.fullmatch(scenario_hash):
+        raise ValueError("scenario_hash must be a 64-character hexadecimal SHA-256 digest")
+    if not tool:
         raise ValueError("tool must be non-empty")
-    if not str(tool_version).strip():
+    if not tool_version:
         raise ValueError("tool_version must be non-empty")
     record: dict[str, Any] = {
         "scenario_id": scenario_id,
