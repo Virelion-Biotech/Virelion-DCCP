@@ -1,6 +1,7 @@
 """Evaluation protocol primitives: scenario-level results and aggregate metrics."""
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass
 from math import sqrt
 from typing import Any, Iterable
@@ -14,6 +15,12 @@ class CaseResult:
     score: float | None = None
     ood_expected: bool = False
     ood_predicted: bool = False
+
+    def __post_init__(self) -> None:
+        if not str(self.scenario_id).strip():
+            raise ValueError("scenario_id must be non-empty")
+        if self.score is not None and not math.isfinite(float(self.score)):
+            raise ValueError("score must be finite when provided")
 
     @property
     def correct(self) -> bool:
@@ -29,11 +36,11 @@ def _rate(n: int, d: int) -> float:
 
 def summarize_cases(cases: Iterable[CaseResult]) -> dict[str, Any]:
     rows = list(cases)
-    tp = sum(r.expected_positive and r.predicted_positive for r in rows)
-    tn = sum((not r.expected_positive) and (not r.predicted_positive) for r in rows)
-    fp = sum((not r.expected_positive) and r.predicted_positive for r in rows)
-    fn = sum(r.expected_positive and (not r.predicted_positive) for r in rows)
-    ood_correct = sum(r.ood_expected == r.ood_predicted for r in rows)
+    tp = sum(result.expected_positive and result.predicted_positive for result in rows)
+    tn = sum((not result.expected_positive) and (not result.predicted_positive) for result in rows)
+    fp = sum((not result.expected_positive) and result.predicted_positive for result in rows)
+    fn = sum(result.expected_positive and (not result.predicted_positive) for result in rows)
+    ood_correct = sum(result.ood_expected == result.ood_predicted for result in rows)
     accuracy = _rate(tp + tn, len(rows))
     precision = _rate(tp, tp + fp)
     recall = _rate(tp, tp + fn)
@@ -46,7 +53,7 @@ def summarize_cases(cases: Iterable[CaseResult]) -> dict[str, Any]:
         "recall": recall,
         "f1": f1,
         "ood_accuracy": _rate(ood_correct, len(rows)),
-        "cases": [r.as_dict() for r in rows],
+        "cases": [result.as_dict() for result in rows],
     }
 
 
@@ -56,8 +63,9 @@ def wilson_interval(successes: int, total: int, z: float = 1.96) -> tuple[float,
         raise ValueError("total must be non-negative")
     if successes < 0 or successes > total:
         raise ValueError("successes must satisfy 0 <= successes <= total")
-    if z < 0:
-        raise ValueError("z must be non-negative")
+    z = float(z)
+    if not math.isfinite(z) or z < 0:
+        raise ValueError("z must be finite and non-negative")
     if total == 0:
         return (0.0, 0.0)
     p = successes / total
