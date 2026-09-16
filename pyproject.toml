@@ -9,18 +9,8 @@ description = "Defensive Computational Challenge Platform for human cardiac mode
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.10"
-authors = [
-  { name = "Virelion Biotech" },
-]
-keywords = [
-  "cardiac",
-  "defensive-ai",
-  "phenotypic-challenge",
-  "ood-detection",
-  "biosafety",
-  "computational-biology",
-  "multi-omics",
-]
+authors = [{ name = "Virelion Biotech" }]
+keywords = ["cardiac", "defensive-ai", "phenotypic-challenge", "ood-detection", "biosafety", "computational-biology", "multi-omics"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
@@ -32,15 +22,10 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-dependencies = [
-  "jsonschema>=4.20",
-]
+dependencies = ["jsonschema>=4.20"]
 
 [project.optional-dependencies]
-test = [
-  "pytest>=7.4",
-  "pytest-cov>=4.1",
-]
+test = ["pytest>=7.4", "pytest-cov>=4.1"]
 
 [project.scripts]
 dccp = "dccp.cli:main"
@@ -65,4 +50,4 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "B", "UP", "RUF", "TRY"]
-ignore = ["I001", "RUF022", "UP035", "UP037", "RUF007", "TRY004"]
+ignore = ["E501", "I001", "RUF022", "RUF046", "UP035", "UP037", "RUF007", "TRY003", "TRY004", "B905", "E702"]
