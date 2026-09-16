@@ -17,11 +17,11 @@ DEFAULT_THRESHOLDS: tuple[float, ...] = (0.1, 0.25, 0.45, 0.65, 0.85)
 
 
 def _validate_thresholds(thresholds: Sequence[float]) -> tuple[float, ...]:
-    values = tuple(float(t) for t in thresholds)
+    values = tuple(float(threshold) for threshold in thresholds)
     expected = len(ORDINAL_LEVELS) - 1
     if len(values) != expected:
         raise ValueError(f"thresholds must contain exactly {expected} values")
-    if any(not math.isfinite(t) or not 0.0 <= t <= 1.0 for t in values):
+    if any(not math.isfinite(value) or not 0.0 <= value <= 1.0 for value in values):
         raise ValueError("thresholds must all be finite and within [0, 1]")
     if any(left >= right for left, right in itertools.pairwise(values)):
         raise ValueError("thresholds must be strictly increasing")
@@ -31,12 +31,12 @@ def _validate_thresholds(thresholds: Sequence[float]) -> tuple[float, ...]:
 def score_to_ordinal(score: float, thresholds: Sequence[float] = DEFAULT_THRESHOLDS) -> str:
     """Map a finite [0, 1] score to none < low < ... < severe."""
     values = _validate_thresholds(thresholds)
-    s = float(score)
-    if not math.isfinite(s):
+    score = float(score)
+    if not math.isfinite(score):
         raise ValueError("score must be finite")
-    s = max(0.0, min(1.0, s))
+    score = max(0.0, min(1.0, score))
     for index, threshold in enumerate(values):
-        if s < threshold:
+        if score < threshold:
             return ORDINAL_LEVELS[index]
     return ORDINAL_LEVELS[-1]
 
@@ -58,9 +58,9 @@ class AxisScoreResult:
 
     def as_dict(self) -> dict[str, Any]:
         return {
-            "continuous": {k: round(v, 4) for k, v in self.continuous.items()},
+            "continuous": {key: round(value, 4) for key, value in self.continuous.items()},
             "ordinal": dict(self.ordinal),
-            "coverage": {k: round(v, 4) for k, v in self.coverage.items()},
+            "coverage": {key: round(value, 4) for key, value in self.coverage.items()},
             "thresholds": list(self.thresholds),
             "notes": list(self.notes),
         }
@@ -81,11 +81,7 @@ def map_module_scores_to_axes(
     continuous: dict[str, float] = {}
     ordinal: dict[str, str] = {}
     notes: list[str] = []
-    coverage = (
-        module_coverage(genes_present, DCCP_AXIS_MODULES)
-        if genes_present is not None
-        else {axis: 1.0 for axis in DCCP_AXIS_MODULES}
-    )
+    coverage = module_coverage(genes_present, DCCP_AXIS_MODULES) if genes_present is not None else {axis: 1.0 for axis in DCCP_AXIS_MODULES}
 
     for axis in DCCP_AXIS_MODULES:
         raw = float(scores.get(axis, 0.0))
@@ -107,16 +103,14 @@ def load_host_evidence_panel(path: str | Path | None = None) -> dict[str, Any]:
     if path:
         candidates.append(Path(path))
     here = Path(__file__).resolve()
-    candidates.extend(
-        [
-            here.parents[2] / "data" / "reference" / "host_evidence_panel.json",
-            here.parent / "data" / "host_evidence_panel.json",
-        ]
-    )
+    candidates.extend([here.parents[2] / "data" / "reference" / "host_evidence_panel.json", here.parent / "data" / "host_evidence_panel.json"])
     for candidate in candidates:
         if candidate.is_file():
             with candidate.open(encoding="utf-8") as handle:
-                return json.load(handle)
+                panel = json.load(handle)
+            if not isinstance(panel, dict):
+                raise ValueError(f"host evidence panel must be an object: {candidate}")
+            return panel
     raise FileNotFoundError("host_evidence_panel.json not found")
 
 
@@ -126,11 +120,12 @@ def realism_evidence_for_axes(
     panel: Mapping[str, Any] | None = None,
     min_level: str = "low",
 ) -> dict[str, Any]:
-    """Build realism evidence and accession references from the evidence panel."""
+    """Build realism evidence without overstating empirical support."""
     panel = panel or load_host_evidence_panel()
     axis_ev = panel.get("axis_evidence") or {}
     min_rank = ordinal_to_rank(min_level)
     supported: list[str] = []
+    proxy_only: list[str] = []
     accessions: list[str] = []
     for axis, level in ordinal_axes.items():
         if axis == "recovery_profile":
@@ -138,17 +133,19 @@ def realism_evidence_for_axes(
         if ordinal_to_rank(level) < min_rank:
             continue
         meta = axis_ev.get(axis) or {}
-        supported.append(f"{axis} host-response programs (public multi-omics)")
-        for accession in meta.get("accessions") or []:
-            if accession not in accessions:
-                accessions.append(accession)
+        axis_accessions = [str(accession).strip() for accession in meta.get("accessions") or [] if str(accession).strip()]
+        if axis_accessions:
+            supported.append(f"{axis} host-response programs (public multi-omics)")
+            for accession in axis_accessions:
+                if accession not in accessions:
+                    accessions.append(accession)
+        else:
+            proxy_only.append(f"{axis} host-response proxy (no linked panel accession)")
     return {
         "supported_components": supported or ["host cardiac phenotypic proxy scores"],
-        "references": [
-            f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={accession}"
-            for accession in accessions
-        ],
-        "proxy_notes": "Ordinal axes derived from host gene-module scores; accessions are public GEO metadata anchors, not redistributed matrices.",
+        "proxy_only_components": proxy_only,
+        "references": [f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={accession}" for accession in accessions],
+        "proxy_notes": "Ordinal axes derive from host gene-module scores. Only axes linked to panel accessions are described as public multi-omics-supported; other axes remain proxy-only.",
         "accessions": accessions,
     }
 
@@ -182,7 +179,7 @@ def draft_scenario_from_scores(
         "realism_evidence": {
             "supported_components": evidence["supported_components"],
             "references": evidence["references"],
-            "proxy_notes": evidence["proxy_notes"],
+            "proxy_notes": evidence["proxy_notes"] + (f" Proxy-only axes: {', '.join(evidence['proxy_only_components'])}." if evidence["proxy_only_components"] else ""),
         },
         "scenario_assumptions": {
             "model_derived_components": [
