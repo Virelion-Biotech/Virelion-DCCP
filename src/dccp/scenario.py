@@ -4,31 +4,34 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
 
-# Candidate locations for the canonical scenario schema.
-_SCHEMA_CANDIDATES = [
-    Path(__file__).resolve().parents[2] / "schemas" / "scenario.schema.json",  # repo root
-    Path(__file__).resolve().parent / "data" / "scenario.schema.json",  # packaged
-]
+_SCHEMA_CANDIDATES = (
+    Path(__file__).resolve().parents[2] / "schemas" / "scenario.schema.json",
+    Path(__file__).resolve().parent / "data" / "scenario.schema.json",
+)
 
 
 def _resolve_schema_path() -> Path:
-    for p in _SCHEMA_CANDIDATES:
-        if p.is_file():
-            return p
+    for path in _SCHEMA_CANDIDATES:
+        if path.is_file():
+            return path
     raise FileNotFoundError(
-        "scenario.schema.json not found. Expected under repo schemas/ "
-        "or package data/"
+        "scenario.schema.json not found. Expected under repo schemas/ or package data/."
     )
 
 
-def _load_schema() -> dict[str, Any]:
-    with _resolve_schema_path().open(encoding="utf-8") as f:
-        return json.load(f)
+@lru_cache(maxsize=1)
+def _validator() -> Draft202012Validator:
+    path = _resolve_schema_path()
+    with path.open(encoding="utf-8") as handle:
+        schema = json.load(handle)
+    Draft202012Validator.check_schema(schema)
+    return Draft202012Validator(schema)
 
 
 @dataclass(frozen=True)
@@ -66,7 +69,7 @@ class Scenario:
             confidence=data["confidence"],
             onset=data.get("onset"),
             progression=data.get("progression"),
-            temporal_profile=data.get("temporal_profile"),
+            temporal_profile=dict(data["temporal_profile"]) if data.get("temporal_profile") else None,
             description=data.get("description"),
             ood_flag=bool(data.get("ood_flag", False)),
             version=str(data.get("version", "1.0.0")),
@@ -79,27 +82,21 @@ class Scenario:
 
 
 def validate_scenario(data: Mapping[str, Any]) -> list[str]:
-    """Validate a scenario dict against the JSON Schema.
-
-    Returns a list of error messages (empty if valid).
-    """
-    schema = _load_schema()
-    validator = Draft202012Validator(schema)
-    errors = sorted(validator.iter_errors(data), key=lambda e: list(e.path))
-    return [f"{'/'.join(str(p) for p in e.path) or '<root>'}: {e.message}" for e in errors]
+    """Validate a scenario dict against the JSON Schema."""
+    if not isinstance(data, Mapping):
+        return ["<root>: scenario must be a JSON object"]
+    errors = sorted(_validator().iter_errors(data), key=lambda error: tuple(str(p) for p in error.path))
+    return [f"{'/'.join(str(p) for p in error.path) or '<root>'}: {error.message}" for error in errors]
 
 
 def load_scenario(path: str | Path) -> Scenario:
-    """Load and validate a scenario JSON file.
-
-    Raises ValueError if the file fails schema validation.
-    """
+    """Load and validate a scenario JSON file."""
     path = Path(path)
-    with path.open(encoding="utf-8") as f:
-        data = json.load(f)
-    errs = validate_scenario(data)
-    if errs:
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    errors = validate_scenario(data)
+    if errors:
         raise ValueError(
-            f"Scenario validation failed for {path}:\n" + "\n".join(f"  - {e}" for e in errs)
+            f"Scenario validation failed for {path}:\n" + "\n".join(f"  - {error}" for error in errors)
         )
     return Scenario.from_dict(data)

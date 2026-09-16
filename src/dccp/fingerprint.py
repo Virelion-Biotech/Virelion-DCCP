@@ -1,9 +1,4 @@
-"""Deterministic content fingerprints for DCCP artifacts.
-
-The implementation is intentionally small and dependency-free.  It follows the
-reproducibility pattern of canonical serialization + SHA-256 rather than
-copying implementation code from external projects.
-"""
+"""Deterministic content fingerprints for DCCP artifacts."""
 from __future__ import annotations
 
 import hashlib
@@ -13,8 +8,17 @@ from typing import Any
 
 
 def canonical_json(value: Any) -> str:
-    """Serialize JSON deterministically for hashing and manifests."""
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    """Serialize JSON deterministically for hashing and manifests.
+
+    NaN/Infinity are rejected so the canonical form remains valid JSON.
+    """
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
 
 
 def sha256_bytes(data: bytes) -> str:

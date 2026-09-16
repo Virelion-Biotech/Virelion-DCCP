@@ -1,48 +1,26 @@
-"""Countermeasure / host-resilience evaluation.
-
-Compares baseline → challenged → intervened trajectories on phenotype
-dimensions that defensive systems care about (viability, contractility,
-inflammation burden, mitochondrial health, etc.).
-
-Works on plain dict summaries so CardiSim is optional. When cardisim is
-installed, ``run_challenge_with_rescue`` can drive a full simulation.
-"""
-
+"""Countermeasure / host-resilience evaluation on phenotype trajectories."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-# Phenotypes where *higher* is healthier
 _POSITIVE = (
-    "contractility",
-    "calcium_handling",
-    "electrophysiology",
-    "metabolism",
-    "angiogenesis",
-    "viability",
-    "mitochondrial_health",
-    "maturity",
+    "contractility", "calcium_handling", "electrophysiology", "metabolism",
+    "angiogenesis", "viability", "mitochondrial_health", "maturity",
 )
-# Phenotypes where *lower* is healthier
-_BURDEN = (
-    "inflammation",
-    "fibrosis",
-    "oxidative_stress",
-    "hypertrophy",
-)
+_BURDEN = ("inflammation", "fibrosis", "oxidative_stress", "hypertrophy")
+_KNOWN = set(_POSITIVE) | set(_BURDEN)
 
 
 @dataclass(frozen=True)
 class RecoveryReport:
-    """Structured recovery / rescue evaluation."""
-
     scenario_id: str
     intervention_name: str
     baseline: Mapping[str, float]
     challenged: Mapping[str, float]
     rescued: Mapping[str, float]
-    dimension_recovery: dict[str, float]  # 0 = no recovery, 1 = full return to baseline
+    dimension_recovery: dict[str, float]
     overall_recovery: float
     health_baseline: float
     health_challenged: float
@@ -65,30 +43,34 @@ class RecoveryReport:
         }
 
 
+def _validate_state(state: Mapping[str, float], name: str) -> None:
+    for key, value in state.items():
+        value = float(value)
+        if not math.isfinite(value):
+            raise ValueError(f"{name}[{key!r}] must be finite")
+
+
 def _health(state: Mapping[str, float]) -> float:
-    pos = [float(state[k]) for k in _POSITIVE if k in state]
-    bur = [float(state[k]) for k in _BURDEN if k in state]
-    if not pos:
+    positive = [float(state[key]) for key in _POSITIVE if key in state]
+    burden = [float(state[key]) for key in _BURDEN if key in state]
+    if not positive:
         return 0.0
-    positive = sum(pos) / len(pos)
-    burden = sum(bur) / len(bur) if bur else 0.0
-    return max(0.0, min(1.0, positive - 0.55 * burden))
+    positive_mean = sum(positive) / len(positive)
+    burden_mean = sum(burden) / len(burden) if burden else 0.0
+    return max(0.0, min(1.0, positive_mean - 0.55 * burden_mean))
 
 
 def _dim_recovery(base: float, challenged: float, rescued: float, *, higher_better: bool) -> float:
-    """Fraction of insult recovered toward baseline (clamped to [0, 1])."""
+    """Fraction of challenge insult recovered toward baseline, clamped to [0, 1]."""
     if higher_better:
         insult = base - challenged
         if insult <= 1e-9:
             return 1.0 if rescued >= challenged - 1e-9 else 0.0
-        gain = rescued - challenged
-        return max(0.0, min(1.0, gain / insult))
-    # lower is better
+        return max(0.0, min(1.0, (rescued - challenged) / insult))
     insult = challenged - base
     if insult <= 1e-9:
         return 1.0 if rescued <= challenged + 1e-9 else 0.0
-    reduction = challenged - rescued
-    return max(0.0, min(1.0, reduction / insult))
+    return max(0.0, min(1.0, (challenged - rescued) / insult))
 
 
 def evaluate_recovery(
@@ -99,43 +81,43 @@ def evaluate_recovery(
     challenged: Mapping[str, float],
     rescued: Mapping[str, float],
 ) -> RecoveryReport:
-    """Score how well an intervention restores phenotype state toward baseline."""
-    keys = set(baseline) | set(challenged) | set(rescued)
-    dim: dict[str, float] = {}
+    """Score intervention recovery on recognized DCCP/CardiSim phenotype dimensions."""
+    _validate_state(baseline, "baseline")
+    _validate_state(challenged, "challenged")
+    _validate_state(rescued, "rescued")
+    all_keys = set(baseline) | set(challenged) | set(rescued)
+    keys = sorted(all_keys & _KNOWN)
+    ignored = sorted(all_keys - _KNOWN)
     notes: list[str] = []
-    for k in sorted(keys):
-        b = float(baseline.get(k, 0.0))
-        c = float(challenged.get(k, 0.0))
-        r = float(rescued.get(k, 0.0))
-        higher = k not in _BURDEN
-        dim[k] = _dim_recovery(b, c, r, higher_better=higher)
+    if ignored:
+        notes.append(f"ignored unrecognized phenotype dimensions: {', '.join(ignored)}")
 
-    # Weight key defensive dimensions more heavily
+    dimension_recovery: dict[str, float] = {}
+    for key in keys:
+        dimension_recovery[key] = _dim_recovery(
+            float(baseline.get(key, 0.0)),
+            float(challenged.get(key, 0.0)),
+            float(rescued.get(key, 0.0)),
+            higher_better=key not in _BURDEN,
+        )
+
     priority = (
-        "viability",
-        "contractility",
-        "mitochondrial_health",
-        "inflammation",
-        "oxidative_stress",
-        "fibrosis",
+        "viability", "contractility", "mitochondrial_health", "inflammation", "oxidative_stress", "fibrosis"
     )
-    weights: list[tuple[str, float]] = []
-    for k in priority:
-        if k in dim:
-            weights.append((k, 2.0))
-    for k, v in dim.items():
-        if k not in priority:
-            weights.append((k, 1.0))
-    if weights:
-        overall = sum(w * dim[k] for k, w in weights) / sum(w for _, w in weights)
+    weighted = [(key, 2.0 if key in priority else 1.0) for key in dimension_recovery]
+    if weighted:
+        total_weight = sum(weight for _, weight in weighted)
+        overall = sum(weight * dimension_recovery[key] for key, weight in weighted) / total_weight
     else:
         overall = 0.0
-        notes.append("no overlapping phenotype keys to score")
+        notes.append("no recognized phenotype keys to score")
 
-    hb, hc, hr = _health(baseline), _health(challenged), _health(rescued)
-    if hr > hc + 0.02:
+    health_baseline = _health(baseline)
+    health_challenged = _health(challenged)
+    health_rescued = _health(rescued)
+    if health_rescued > health_challenged + 0.02:
         notes.append("rescued health exceeds challenged health")
-    if hr >= hb - 0.05:
+    if health_rescued >= health_baseline - 0.05:
         notes.append("near-complete health restoration relative to baseline")
 
     return RecoveryReport(
@@ -144,16 +126,15 @@ def evaluate_recovery(
         baseline=dict(baseline),
         challenged=dict(challenged),
         rescued=dict(rescued),
-        dimension_recovery=dim,
+        dimension_recovery=dimension_recovery,
         overall_recovery=overall,
-        health_baseline=hb,
-        health_challenged=hc,
-        health_rescued=hr,
+        health_baseline=health_baseline,
+        health_challenged=health_challenged,
+        health_rescued=health_rescued,
         notes=notes,
     )
 
 
-# Default host-centric rescue effects (attenuate injury axes) — not drug recipes.
 DEFAULT_RESCUE_EFFECTS: dict[str, float] = {
     "inflammation": -0.35,
     "oxidative_stress": -0.30,
@@ -173,12 +154,26 @@ def build_rescue_event_dict(
     magnitude: float = 1.0,
     effects: Mapping[str, float] | None = None,
 ) -> dict[str, Any]:
-    """CardiSim-compatible rescue event as a plain dict."""
+    """Return a CardiSim-compatible host-resilience event dictionary."""
+    if not str(name).strip():
+        raise ValueError("name must be non-empty")
+    onset = float(onset)
+    duration = float(duration)
+    magnitude = float(magnitude)
+    if not math.isfinite(onset) or onset < 0:
+        raise ValueError("onset must be finite and non-negative")
+    if not math.isfinite(duration) or duration < 0:
+        raise ValueError("duration must be finite and non-negative")
+    if not math.isfinite(magnitude):
+        raise ValueError("magnitude must be finite")
+    effect_map = dict(effects or DEFAULT_RESCUE_EFFECTS)
+    if not all(math.isfinite(float(value)) for value in effect_map.values()):
+        raise ValueError("effects must contain only finite numeric values")
     return {
         "name": name,
         "onset": onset,
         "duration": duration,
         "magnitude": magnitude,
-        "effects": dict(effects or DEFAULT_RESCUE_EFFECTS),
+        "effects": effect_map,
         "recovery": 1.0,
     }

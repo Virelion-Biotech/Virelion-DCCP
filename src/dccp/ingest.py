@@ -9,6 +9,12 @@ from typing import Any, Callable
 from .fingerprint import file_hash
 
 
+def _record_count(payload: Any) -> int:
+    if isinstance(payload, list):
+        return len(payload)
+    return 1 if payload is not None else 0
+
+
 @dataclass(frozen=True)
 class IngestedArtifact:
     source: str
@@ -20,9 +26,17 @@ class IngestedArtifact:
 
 def load_json(path: str | Path) -> IngestedArtifact:
     path = Path(path)
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    count = len(payload) if isinstance(payload, (list, dict)) else 1
-    return IngestedArtifact(path.as_posix(), file_hash(path), count, payload, "identity-json")
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    with path.open(encoding="utf-8") as handle:
+        payload = json.load(handle)
+    return IngestedArtifact(
+        source=path.as_posix(),
+        source_sha256=file_hash(path),
+        record_count=_record_count(payload),
+        payload=payload,
+        transform="identity-json",
+    )
 
 
 def normalize_records(
@@ -32,14 +46,14 @@ def normalize_records(
     transform_name: str,
 ) -> IngestedArtifact:
     """Apply a named deterministic transformation while retaining source identity."""
-    if not transform_name.strip():
+    name = transform_name.strip()
+    if not name:
         raise ValueError("transform_name must be non-empty")
     payload = transform(artifact.payload)
-    count = len(payload) if isinstance(payload, (list, dict)) else 1
     return IngestedArtifact(
         source=artifact.source,
         source_sha256=artifact.source_sha256,
-        record_count=count,
+        record_count=_record_count(payload),
         payload=payload,
-        transform=transform_name,
+        transform=name,
     )
