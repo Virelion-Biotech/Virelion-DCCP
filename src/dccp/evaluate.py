@@ -1,27 +1,19 @@
 """Defensive evaluation stubs: abnormality, mechanism profile, OOD signal.
 
-These are *reference heuristics* for the evaluation harness, not trained models.
-They establish the output contract a defensive AI should satisfy:
-
-1. Is the tissue state abnormal relative to a baseline?
-2. Which response systems are implicated (mechanism-oriented axes)?
-3. Does the profile fail to match known ordinary states (OOD-style flag)?
-
-Replace or wrap with learned models without changing the result schema.
+These are reference heuristics for the evaluation harness, not trained models.
+They establish the output contract a defensive AI should satisfy.
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from .scenario import Scenario
 
-# Ordinal levels for distance calculations
 _LEVEL_ORDER = ["none", "low", "moderate", "substantial", "high", "severe"]
-_LEVEL_IDX = {n: i for i, n in enumerate(_LEVEL_ORDER)}
-
-# Reference "normal" axes (all none/low)
+_LEVEL_IDX = {name: index for index, name in enumerate(_LEVEL_ORDER)}
 _NORMAL: dict[str, str] = {
     "inflammatory": "none",
     "vascular_endothelial": "none",
@@ -31,8 +23,6 @@ _NORMAL: dict[str, str] = {
     "cell_death": "none",
     "remodeling": "none",
 }
-
-# Simple ordinary-pathology templates for distance-to-known
 _ORDINARY_TEMPLATES: dict[str, dict[str, str]] = {
     "mi_like": {
         "inflammatory": "high",
@@ -56,15 +46,14 @@ _ORDINARY_TEMPLATES: dict[str, dict[str, str]] = {
 
 
 def _axis_distance(a: Mapping[str, str], b: Mapping[str, str]) -> float:
-    keys = set(a) | set(b)
-    keys.discard("recovery_profile")
+    keys = (set(a) | set(b)) - {"recovery_profile"}
     if not keys:
         return 0.0
     total = 0.0
-    for k in keys:
-        ia = _LEVEL_IDX.get(a.get(k, "none"), 0)
-        ib = _LEVEL_IDX.get(b.get(k, "none"), 0)
-        total += abs(ia - ib)
+    for key in keys:
+        if a.get(key, "none") not in _LEVEL_IDX or b.get(key, "none") not in _LEVEL_IDX:
+            raise ValueError(f"unknown ordinal level for axis {key!r}")
+        total += abs(_LEVEL_IDX[a.get(key, "none")] - _LEVEL_IDX[b.get(key, "none")])
     return total / len(keys)
 
 
@@ -74,7 +63,7 @@ class DefensiveAssessment:
 
     scenario_id: str
     abnormal: bool
-    abnormality_score: float  # 0 = normal, higher = more abnormal
+    abnormality_score: float
     mechanism_profile: dict[str, str]
     nearest_ordinary: str | None
     distance_to_nearest_ordinary: float
@@ -95,21 +84,19 @@ class DefensiveAssessment:
 
 
 def assess_scenario(scenario: Scenario, *, ood_threshold: float = 1.5) -> DefensiveAssessment:
-    """Heuristic defensive assessment from phenotypic axes alone.
-
-    - abnormality_score: mean ordinal distance from normal
-    - nearest_ordinary: closest ordinary template name
-    - ood_suggested: True if far from all ordinary templates or scenario.ood_flag
-    """
+    """Heuristic defensive assessment from phenotypic axes alone."""
+    ood_threshold = float(ood_threshold)
+    if not math.isfinite(ood_threshold) or ood_threshold < 0:
+        raise ValueError("ood_threshold must be finite and non-negative")
     axes = dict(scenario.phenotypic_axes)
     abn = _axis_distance(axes, _NORMAL)
 
     best_name: str | None = None
     best_dist = float("inf")
-    for name, tmpl in _ORDINARY_TEMPLATES.items():
-        d = _axis_distance(axes, tmpl)
-        if d < best_dist:
-            best_dist = d
+    for name, template in _ORDINARY_TEMPLATES.items():
+        distance = _axis_distance(axes, template)
+        if distance < best_dist:
+            best_dist = distance
             best_name = name
 
     notes: list[str] = []
@@ -117,9 +104,7 @@ def assess_scenario(scenario: Scenario, *, ood_threshold: float = 1.5) -> Defens
     if scenario.ood_flag:
         notes.append("scenario.ood_flag is set (held-out / novel by design)")
     if best_dist >= ood_threshold:
-        notes.append(
-            f"distance to nearest ordinary template ({best_name}) = {best_dist:.2f} ≥ {ood_threshold}"
-        )
+        notes.append(f"distance to nearest ordinary template ({best_name}) = {best_dist:.2f} >= {ood_threshold}")
 
     abnormal = abn > 0.25
     if not abnormal:
@@ -129,9 +114,9 @@ def assess_scenario(scenario: Scenario, *, ood_threshold: float = 1.5) -> Defens
         scenario_id=scenario.scenario_id,
         abnormal=abnormal,
         abnormality_score=abn,
-        mechanism_profile={k: v for k, v in axes.items() if k != "recovery_profile"},
+        mechanism_profile={key: value for key, value in axes.items() if key != "recovery_profile"},
         nearest_ordinary=best_name,
-        distance_to_nearest_ordinary=best_dist if best_dist < float("inf") else 0.0,
+        distance_to_nearest_ordinary=best_dist if math.isfinite(best_dist) else 0.0,
         ood_suggested=ood,
         notes=notes,
     )
