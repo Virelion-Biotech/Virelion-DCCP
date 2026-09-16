@@ -41,14 +41,15 @@ jobs:
 
       - name: CLI smoke tests
         run: |
-          dccp --version
-          dccp validate scenarios/examples/SCENARIO-001.ordinary-mi.json
-          dccp audit-all scenarios/examples
-          dccp registry --root scenarios/examples --output /tmp/dccp-registry.json
-          dccp release-gate /tmp/dccp-registry.json --base .
-          dccp materialize --root scenarios/examples --output /tmp/dccp-challenge-set.json
-          dccp map-scores --scores inflammatory=0.8,contractile_functional=0.4 --draft-id SCENARIO-902 >/tmp/draft.json
-          dccp validate /tmp/draft.json
+          python -c "from dccp.cli import main; raise SystemExit(main(['--version']))"
+          python -c "from dccp.cli import main; raise SystemExit(main(['validate','scenarios/examples/SCENARIO-001.ordinary-mi.json']))"
+          python -c "from dccp.cli import main; raise SystemExit(main(['audit-all','scenarios/examples']))"
+          python -c "from dccp.cli import main; raise SystemExit(main(['registry','--root','scenarios/examples','--output','/tmp/dccp-registry.json']))"
+          python -c "from dccp.cli import main; raise SystemExit(main(['release-gate','/tmp/dccp-registry.json','--base','.']))"
+          python -c "from dccp.cli import main; raise SystemExit(main(['materialize','--root','scenarios/examples','--output','/tmp/dccp-challenge-set.json']))"
+          python -c "from dccp.cli import main; raise SystemExit(main(['map-scores','--scores','inflammatory=0.8,contractile_functional=0.4','--draft-id','SCENARIO-902','-o','/tmp/draft.json']))"
+          python -c "from dccp.cli import main; raise SystemExit(main(['validate','/tmp/draft.json']))"
+          python -c "from dccp.cli import main; raise SystemExit(main(['bundle','--output-dir','/tmp/dccp-bundle','--run-id','ci','--input-files','scenarios/examples/SCENARIO-001.ordinary-mi.json']))"
 
       - name: Audit all repository scenarios
-        run: dccp audit-all scenarios
+        run: python -c "from dccp.cli import main; raise SystemExit(main(['audit-all','scenarios']))"
