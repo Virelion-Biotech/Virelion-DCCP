@@ -9,7 +9,7 @@ from typing import Any, Iterator
 
 from .audit import audit_scenario
 from .evaluate import assess_scenario
-from .provenance import scenario_digest
+from .provenance import canonical_hash, scenario_digest
 from .scenario import Scenario, load_scenario
 
 
@@ -22,16 +22,16 @@ class LibraryEntry:
 
 def discover_scenarios(root: str | Path) -> list[Path]:
     root = Path(root)
-    return sorted(p for p in root.rglob("*.json") if p.is_file())
+    if not root.is_dir():
+        raise FileNotFoundError(f"scenario root does not exist: {root}")
+    return sorted(path for path in root.rglob("*.json") if path.is_file())
 
 
 def load_library(root: str | Path = "scenarios") -> list[LibraryEntry]:
-    entries: list[LibraryEntry] = []
-    for path in discover_scenarios(root):
-        sc = load_scenario(path)
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        entries.append(LibraryEntry(path=path, scenario=sc, digest=scenario_digest(raw)))
-    return entries
+    return [
+        LibraryEntry(path=path, scenario=(scenario := load_scenario(path)), digest=scenario_digest(scenario.raw))
+        for path in discover_scenarios(root)
+    ]
 
 
 def iter_library(root: str | Path = "scenarios") -> Iterator[LibraryEntry]:
@@ -50,23 +50,23 @@ def materialize_challenge_set(
     """
     entries = load_library(root)
     cases = []
-    for e in entries:
-        if e.scenario.ood_flag and not include_ood:
+    for entry in entries:
+        if entry.scenario.ood_flag and not include_ood:
             continue
-        assessment = assess_scenario(e.scenario)
-        audit = audit_scenario(e.scenario)
+        audit = audit_scenario(entry.scenario)
+        assessment = assess_scenario(entry.scenario)
         cases.append(
             {
-                "scenario_id": e.scenario.scenario_id,
-                "path": str(e.path),
-                "digest": e.digest,
-                "title": e.scenario.title,
-                "ood_flag": e.scenario.ood_flag,
-                "confidence": e.scenario.confidence,
-                "phenotypic_axes": dict(e.scenario.phenotypic_axes),
+                "scenario_id": entry.scenario.scenario_id,
+                "path": str(entry.path),
+                "digest": entry.digest,
+                "title": entry.scenario.title,
+                "ood_flag": entry.scenario.ood_flag,
+                "confidence": entry.scenario.confidence,
+                "phenotypic_axes": dict(entry.scenario.phenotypic_axes),
                 "assessment": assessment.as_dict(),
                 "audit_passed": audit.passed,
-                "ladder_role": _ladder_role(e.scenario),
+                "ladder_role": _ladder_role(entry.scenario),
             }
         )
 
@@ -78,12 +78,9 @@ def materialize_challenge_set(
             "Host-response axes only; no agent construction parameters."
         ),
         "n_cases": len(cases),
-        "n_ood": sum(1 for c in cases if c["ood_flag"]),
+        "n_ood": sum(1 for case in cases if case["ood_flag"]),
         "cases": cases,
     }
-    # digest over cases without nested assessment volatility? include full for audit
-    from .provenance import canonical_hash
-
     payload["set_hash"] = canonical_hash({"cases": cases, "version": payload["version"]})
     return payload
 
@@ -93,10 +90,10 @@ def _ladder_role(sc: Scenario) -> str:
         return "novel_heldout"
     if sc.confidence == "exploratory":
         return "atypical"
-    sid = sc.scenario_id
-    if sid.endswith("001") or "ordinary" in (sc.title or "").lower() or "mi" in (sc.title or "").lower():
+    title = (sc.title or "").lower()
+    if sc.scenario_id.endswith("001") or "ordinary" in title or "mi" in title:
         return "ordinary_pathology"
-    if "hypoxia" in (sc.title or "").lower():
+    if "hypoxia" in title:
         return "ordinary_pathology"
     return "ordinary_or_atypical"
 
@@ -105,5 +102,5 @@ def write_challenge_set(path: str | Path, root: str | Path = "scenarios") -> Pat
     path = Path(path)
     payload = materialize_challenge_set(root)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     return path
