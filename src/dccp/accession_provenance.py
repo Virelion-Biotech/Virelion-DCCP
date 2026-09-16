@@ -32,7 +32,7 @@ def panel_accession_records() -> list[dict[str, Any]]:
             {
                 "accession": acc,
                 "digest": accession_digest(acc, extra),
-                **{k: v for k, v in extra.items() if v is not None},
+                **{key: value for key, value in extra.items() if value is not None},
             }
         )
     return records
@@ -40,17 +40,20 @@ def panel_accession_records() -> list[dict[str, Any]]:
 
 def evidence_bundle_for_accessions(accessions: Sequence[str]) -> dict[str, Any]:
     """Provenance bundle linking listed accessions to panel digests."""
-    by_acc = {r["accession"]: r for r in panel_accession_records()}
+    normalized = [str(accession).strip() for accession in accessions]
+    if any(not accession for accession in normalized):
+        raise ValueError("accessions must be non-empty strings")
+    by_acc = {record["accession"]: record for record in panel_accession_records()}
     linked = []
     missing = []
-    for a in accessions:
-        if a in by_acc:
-            linked.append(by_acc[a])
+    for accession in normalized:
+        if accession in by_acc:
+            linked.append(by_acc[accession])
         else:
-            missing.append(a)
-            linked.append({"accession": a, "digest": accession_digest(a), "status": "not_in_panel"})
+            missing.append(accession)
+            linked.append({"accession": accession, "digest": accession_digest(accession), "status": "not_in_panel"})
     bundle = {
-        "accessions": list(accessions),
+        "accessions": normalized,
         "records": linked,
         "missing_from_panel": missing,
         "leakage_policy_note": (
@@ -60,7 +63,7 @@ def evidence_bundle_for_accessions(accessions: Sequence[str]) -> dict[str, Any]:
         ),
     }
     bundle["bundle_hash"] = canonical_hash(
-        {"accessions": list(accessions), "digests": [r["digest"] for r in linked]}
+        {"accessions": normalized, "digests": [record["digest"] for record in linked]}
     )
     return bundle
 
@@ -69,15 +72,21 @@ def attach_accession_provenance(
     scenario_dict: Mapping[str, Any],
     accessions: Sequence[str] | None = None,
 ) -> dict[str, Any]:
-    """Return a copy of scenario_dict with provenance block for host accessions."""
+    """Return a scenario copy with accession provenance nested in realism_evidence."""
     out = dict(scenario_dict)
-    acc = list(accessions or [])
+    evidence = dict(out.get("realism_evidence") or {})
+    acc = [str(accession).strip() for accession in (accessions or [])]
+    if any(not accession for accession in acc):
+        raise ValueError("accessions must be non-empty strings")
     if not acc:
-        # try from _evidence_accessions or parse references
-        acc = list(out.get("_evidence_accessions") or [])
+        acc = [str(accession).strip() for accession in (out.get("_evidence_accessions") or [])]
+        acc = [accession for accession in acc if accession]
         if not acc:
-            for ref in (out.get("realism_evidence") or {}).get("references") or []:
+            for ref in evidence.get("references") or []:
                 if "acc=" in ref:
-                    acc.append(ref.split("acc=")[-1].split("&")[0])
-    out["host_omics_provenance"] = evidence_bundle_for_accessions(acc)
+                    accession = ref.split("acc=", 1)[1].split("&", 1)[0].strip()
+                    if accession:
+                        acc.append(accession)
+    evidence["host_omics_provenance"] = evidence_bundle_for_accessions(acc)
+    out["realism_evidence"] = evidence
     return out
