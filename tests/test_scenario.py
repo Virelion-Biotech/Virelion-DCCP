@@ -43,10 +43,10 @@ def test_missing_required_fails():
     assert errors
 
 
-def test_audit_rejects_empty_supported_components():
+def test_empty_supported_components_is_schema_rejected():
     data = json.loads(EXAMPLE.read_text(encoding="utf-8"))
-    data = dict(data)
     data["realism_evidence"] = {"supported_components": []}
     result = audit_scenario(data)
     assert not result.passed
-    assert any("supported_components" in error for error in result.policy_errors)
+    assert result.schema_errors
+    assert "supported_components" in result.schema_errors[0]
