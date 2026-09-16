@@ -13,7 +13,7 @@ def release_gate(
     require_all_audited: bool = True,
     base_dir: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Validate registry structure, audit status, fingerprints, and listed files."""
+    """Validate registry structure and optionally verify referenced files."""
     entries = registry.get("entries")
     failures: list[dict[str, Any]] = []
     if not isinstance(entries, list) or not entries:
@@ -43,18 +43,26 @@ def release_gate(
         if require_all_audited and not bool(entry.get("audit_passed", False)):
             failures.append({"scenario_id": scenario_id or None, "reason": "audit_failed"})
 
-    if not failures:
-        base = Path(base_dir if base_dir is not None else ".").resolve()
+    # Preserve the metadata-only API when no base directory is supplied.
+    if base_dir is not None and not failures:
+        base = Path(base_dir).resolve()
         root = Path(str(registry.get("root", ".")))
         if not root.is_absolute():
             root = (base / root).resolve()
-        manifest = {
-            "files": [
-                {"path": str((root / item["path"]).resolve().relative_to(base)).replace("\\", "/"), "sha256": item["sha256"]}
-                for item in manifest_files
-            ]
-        }
-        for issue in verify_file_hashes(manifest, base):
-            failures.append({"scenario_id": None, "reason": issue.kind, "path": issue.path, "detail": issue.detail})
+        try:
+            manifest = {
+                "files": [
+                    {
+                        "path": (root / item["path"]).resolve().relative_to(base).as_posix(),
+                        "sha256": item["sha256"],
+                    }
+                    for item in manifest_files
+                ]
+            }
+        except ValueError:
+            failures.append({"scenario_id": None, "reason": "unsafe_registry_root"})
+        else:
+            for issue in verify_file_hashes(manifest, base):
+                failures.append({"scenario_id": None, "reason": issue.kind, "path": issue.path, "detail": issue.detail})
 
     return {"passed": not failures, "n_entries": len(entries), "failures": failures}
