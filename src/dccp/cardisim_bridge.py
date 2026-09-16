@@ -21,6 +21,7 @@ _AXIS_TO_CARDISIM = {
 }
 _ONSET_DAYS = {"immediate": 0.0, "rapid": 0.0, "subacute": 1.0, "delayed": 3.0, "insidious": 5.0}
 _PROGRESSION_DURATION = {"monotonic": 5.0, "biphasic": 3.0, "multiphasic": 2.5, "resolving": 4.0, "progressive": 8.0, "atypical": 4.0}
+_KNOWN_AXES = frozenset(_AXIS_TO_CARDISIM) | {"recovery_profile"}
 
 
 def _scale(level: str | None) -> float:
@@ -30,6 +31,7 @@ def _scale(level: str | None) -> float:
         return _LEVEL_SCALE[level]
     except KeyError:
         raise ValueError(f"unknown phenotypic axis level: {level!r}") from None
+
 
 @dataclass(frozen=True)
 class CardisimEventSpec:
@@ -43,10 +45,7 @@ class CardisimEventSpec:
     def __post_init__(self) -> None:
         if not self.name.strip():
             raise ValueError("event name must be non-empty")
-        onset = float(self.onset)
-        duration = float(self.duration)
-        magnitude = float(self.magnitude)
-        recovery = float(self.recovery)
+        onset, duration, magnitude, recovery = map(float, (self.onset, self.duration, self.magnitude, self.recovery))
         if not math.isfinite(onset) or onset < 0:
             raise ValueError("onset must be finite and non-negative")
         if not math.isfinite(duration) or duration <= 0:
@@ -61,13 +60,14 @@ class CardisimEventSpec:
 
 
 def axes_to_effects(axes: Mapping[str, str]) -> dict[str, float]:
+    unknown = set(axes) - _KNOWN_AXES
+    if unknown:
+        raise ValueError(f"unknown phenotypic axes: {', '.join(sorted(unknown))}")
     acc: dict[str, float] = {}
     for axis, level in axes.items():
         if axis == "recovery_profile":
             continue
-        mapping = _AXIS_TO_CARDISIM.get(axis)
-        if not mapping:
-            continue
+        mapping = _AXIS_TO_CARDISIM[axis]
         scale = _scale(level)
         for phenotype, weight in mapping.items():
             acc[phenotype] = acc.get(phenotype, 0.0) + weight * scale
@@ -87,16 +87,25 @@ def scenario_to_event_specs(scenario: Scenario) -> list[CardisimEventSpec]:
     for index, phase in enumerate(phases):
         if not isinstance(phase, Mapping):
             raise ValueError(f"temporal_profile.phases[{index}] must be an object")
-        name = str(phase.get("name") or f"phase_{index}")
-        dominant = {str(axis) for axis in (phase.get("dominant_axes") or [])}
-        if not dominant:
-            dominant = {axis for axis in scenario.phenotypic_axes if axis != "recovery_profile"}
+        name = str(phase.get("name") or f"phase_{index}").strip()
+        if not name:
+            raise ValueError(f"temporal_profile.phases[{index}].name must be non-empty")
+        dominant = {str(axis).strip() for axis in (phase.get("dominant_axes") or [])}
+        unknown = dominant - _KNOWN_AXES
+        if unknown:
+            raise ValueError(f"temporal_profile.phases[{index}] contains unknown axes: {', '.join(sorted(unknown))}")
+        dominant.discard("recovery_profile")
         full_axes = {axis: level for axis, level in scenario.phenotypic_axes.items() if axis != "recovery_profile"}
-        dominant_axes = {axis: full_axes[axis] for axis in dominant if axis in full_axes}
+        if dominant:
+            dominant_axes = {axis: full_axes[axis] for axis in dominant if axis in full_axes}
+            missing = dominant - set(dominant_axes)
+            if missing:
+                raise ValueError(f"temporal_profile.phases[{index}] names axes absent from phenotypic_axes: {', '.join(sorted(missing))}")
+        else:
+            dominant_axes = full_axes
         residual_axes = {axis: level for axis, level in full_axes.items() if axis not in dominant_axes}
         effects = axes_to_effects(dominant_axes)
-        residual = axes_to_effects(residual_axes)
-        for phenotype, value in residual.items():
+        for phenotype, value in axes_to_effects(residual_axes).items():
             effects[phenotype] = max(-1.0, min(1.0, effects.get(phenotype, 0.0) + 0.5 * value))
         specs.append(CardisimEventSpec(f"{scenario.scenario_id}:{name}", time, base_duration, 1.0, effects))
         time += base_duration
