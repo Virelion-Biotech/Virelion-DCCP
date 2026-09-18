@@ -275,24 +275,22 @@ def test_cardisim_edge_paths():
     specs = scenario_to_event_specs(sc)
     assert len(specs) == 2
 
+    malformed = dict(_scenario().raw)
+    malformed["temporal_profile"] = {"phases": "bad"}
     with pytest.raises(ValueError):
-        scenario_to_event_specs(
-            _scenario(temporal_profile={"phases": "bad"})
-        )
+        scenario_to_event_specs(Scenario.from_dict(malformed))
 
+    malformed = dict(_scenario().raw)
+    malformed["temporal_profile"] = {
+        "phases": [
+            {
+                "name": "bad",
+                "dominant_axes": ["vascular_endothelial"],
+            }
+        ]
+    }
     with pytest.raises(ValueError):
-        scenario_to_event_specs(
-            _scenario(
-                temporal_profile={
-                    "phases": [
-                        {
-                            "name": "bad",
-                            "dominant_axes": ["vascular_endothelial"],
-                        }
-                    ]
-                }
-            )
-        )
+        scenario_to_event_specs(Scenario.from_dict(malformed))
 
 
 def test_detector_serialization_and_failure_paths():
