@@ -804,3 +804,19 @@ def test_cli_surrogate_error_path(monkeypatch):
         "surrogate",
         str(EXAMPLES / "SCENARIO-001.ordinary-mi.json"),
     ]) == 2
+
+
+def test_library_ladder_role_does_not_use_substring_mi():
+    from dccp.library import _ladder_role
+
+    false_positive = _scenario(
+        scenario_id="SCENARIO-901",
+        title="familial protein-disorder phenotype",
+    )
+    assert _ladder_role(false_positive) == "ordinary_or_atypical"
+
+    explicit_mi = _scenario(
+        scenario_id="SCENARIO-902",
+        title="Myocardial injury / MI phenotype",
+    )
+    assert _ladder_role(explicit_mi) == "ordinary_pathology"
