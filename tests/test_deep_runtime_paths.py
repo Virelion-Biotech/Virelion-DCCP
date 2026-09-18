@@ -551,6 +551,8 @@ def test_registry_malformed_files_and_lookup(tmp_path: Path):
     with pytest.raises(TypeError):
         build_registry(tmp_path)
 
+    malformed.unlink()
+
     valid_source = EXAMPLES / "SCENARIO-001.ordinary-mi.json"
     valid = tmp_path / valid_source.name
     valid.write_text(valid_source.read_text(encoding="utf-8"), encoding="utf-8")
