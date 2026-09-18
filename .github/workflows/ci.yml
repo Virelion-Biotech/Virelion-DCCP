@@ -36,8 +36,8 @@ jobs:
       - name: Ruff
         run: ruff check src tests
 
-      - name: Pytest
-        run: pytest -q
+      - name: Pytest + coverage
+        run: pytest -q --cov=dccp --cov-branch --cov-report=term-missing
 
       - name: CLI smoke tests
         run: |
