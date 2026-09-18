@@ -52,7 +52,7 @@ EXAMPLES = ROOT / "scenarios" / "examples"
 
 def _scenario(**overrides: object) -> Scenario:
     data = {
-        "scenario_id": "SCENARIO-DEEP",
+        "scenario_id": "SCENARIO-900",
         "title": "deep test",
         "tissue": "cardiac",
         "phenotypic_axes": {
@@ -314,11 +314,13 @@ def test_detector_serialization_and_failure_paths():
         only_normal.assess(_scenario())
 
 
-def test_omics_mapping_and_panel_edge_paths(tmp_path: Path):
+def test_omics_mapping_and_panel_edge_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert ordinal_to_rank("none") == 0
     with pytest.raises(ValueError):
         ordinal_to_rank("unknown")
 
+    import dccp.omics_map as omics_map
+    monkeypatch.setattr(omics_map, "__file__", str(tmp_path / "fake" / "module.py"))
     with pytest.raises(FileNotFoundError):
         load_host_evidence_panel(tmp_path / "missing.json")
 
