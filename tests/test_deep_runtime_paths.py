@@ -476,7 +476,9 @@ def test_schedule_conversion():
 
 
 
-def test_audit_policy_warning_and_error_branches():
+def test_audit_policy_warning_and_error_branches(monkeypatch: pytest.MonkeyPatch):
+    import dccp.audit as audit_module
+
     raw = dict(_scenario().raw)
     raw["ood_flag"] = True
     raw["confidence"] = "high"
@@ -509,9 +511,15 @@ def test_audit_policy_warning_and_error_branches():
     assert forbidden_result.policy_errors
     assert "weapon" in forbidden_result.policy_errors[0]
 
+    # Exercise policy checks directly by bypassing schema rejection.
+    monkeypatch.setattr(audit_module, "validate_scenario", lambda _: [])
     wrong_tissue = {**_scenario().raw, "tissue": "brain"}
-    wrong_tissue_result = __import__("dccp.audit", fromlist=["audit_scenario"]).audit_scenario(wrong_tissue)
+    wrong_tissue_result = audit_module.audit_scenario(wrong_tissue)
     assert any("tissue == 'cardiac'" in error for error in wrong_tissue_result.policy_errors)
+
+    no_evidence = {**_scenario().raw, "realism_evidence": {"supported_components": []}}
+    no_evidence_result = audit_module.audit_scenario(no_evidence)
+    assert any("supported_components must list" in error for error in no_evidence_result.policy_errors)
 
 
 def test_evaluate_unknown_axis_and_normal_profile():
@@ -539,7 +547,7 @@ def test_registry_malformed_files_and_lookup(tmp_path: Path):
     with pytest.raises(TypeError):
         build_registry(tmp_path)
 
-    malformed.write_text(json.dumps({"scenario": []}), encoding="utf-8")
+    malformed.write_text(json.dumps({"scenario": "not-an-object"}), encoding="utf-8")
     with pytest.raises(TypeError):
         build_registry(tmp_path)
 
