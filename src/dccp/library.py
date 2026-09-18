@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator
@@ -91,7 +92,7 @@ def _ladder_role(sc: Scenario) -> str:
     if sc.confidence == "exploratory":
         return "atypical"
     title = (sc.title or "").lower()
-    if sc.scenario_id.endswith("001") or "ordinary" in title or "mi" in title:
+    if sc.scenario_id.endswith("001") or "ordinary" in title or re.search(r"\bmi\b", title):
         return "ordinary_pathology"
     if "hypoxia" in title:
         return "ordinary_pathology"
