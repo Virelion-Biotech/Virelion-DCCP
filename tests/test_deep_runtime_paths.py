@@ -473,3 +473,324 @@ def test_schedule_conversion():
     )
     assert len(schedule.events) == 2
     assert schedule.events[1].kwargs["recovery"] == 1.0
+
+
+
+def test_audit_policy_warning_and_error_branches():
+    raw = dict(_scenario().raw)
+    raw["ood_flag"] = True
+    raw["confidence"] = "high"
+    raw["progression"] = "multiphasic"
+    result = __import__("dccp.audit", fromlist=["audit_scenario"]).audit_scenario(
+        {
+            **raw,
+            "realism_evidence": {"supported_components": ["test"]},
+            "scenario_assumptions": {"model_derived_components": ["test"]},
+        }
+    )
+    assert any("confidence=high" in warning for warning in result.policy_warnings)
+    assert any("without temporal_profile" in warning for warning in result.policy_warnings)
+
+    exploratory = {
+        **raw,
+        "ood_flag": False,
+        "confidence": "exploratory",
+        "progression": "monotonic",
+        "scenario_assumptions": {"model_derived_components": []},
+    }
+    exploratory_result = __import__("dccp.audit", fromlist=["audit_scenario"]).audit_scenario(exploratory)
+    assert any("model_derived_components" in warning for warning in exploratory_result.policy_warnings)
+
+    forbidden = {
+        **_scenario().raw,
+        "description": "contains a weapon term",
+    }
+    forbidden_result = __import__("dccp.audit", fromlist=["audit_scenario"]).audit_scenario(forbidden)
+    assert forbidden_result.policy_errors
+    assert "weapon" in forbidden_result.policy_errors[0]
+
+    wrong_tissue = {**_scenario().raw, "tissue": "brain"}
+    wrong_tissue_result = __import__("dccp.audit", fromlist=["audit_scenario"]).audit_scenario(wrong_tissue)
+    assert any("tissue == 'cardiac'" in error for error in wrong_tissue_result.policy_errors)
+
+
+def test_evaluate_unknown_axis_and_normal_profile():
+    from dccp.evaluate import _axis_distance, assess_scenario
+
+    assert _axis_distance({}, {}) == 0.0
+    with pytest.raises(ValueError):
+        _axis_distance({"inflammatory": "invalid"}, {"inflammatory": "none"})
+
+    normal = _scenario(phenotypic_axes={})
+    assessment = assess_scenario(normal)
+    assert assessment.abnormal is False
+    assert any("close to normal" in note for note in assessment.notes)
+
+
+def test_registry_malformed_files_and_lookup(tmp_path: Path):
+    from dccp.registry import build_registry, find_scenario
+
+    malformed = tmp_path / "bad.json"
+    malformed.write_text("{not-json", encoding="utf-8")
+    with pytest.raises(ValueError):
+        build_registry(tmp_path)
+
+    malformed.write_text("[]", encoding="utf-8")
+    with pytest.raises(TypeError):
+        build_registry(tmp_path)
+
+    malformed.write_text(json.dumps({"scenario": []}), encoding="utf-8")
+    with pytest.raises(TypeError):
+        build_registry(tmp_path)
+
+    valid_source = EXAMPLES / "SCENARIO-001.ordinary-mi.json"
+    valid = tmp_path / valid_source.name
+    valid.write_text(valid_source.read_text(encoding="utf-8"), encoding="utf-8")
+    entry = find_scenario(tmp_path, "SCENARIO-001")
+    assert entry.scenario_id == "SCENARIO-001"
+
+    with pytest.raises(ValueError):
+        find_scenario(tmp_path, "   ")
+    with pytest.raises(KeyError):
+        find_scenario(tmp_path, "SCENARIO-999")
+
+
+def test_release_gate_integrity_branches(tmp_path: Path):
+    from dccp.release_gate import release_gate
+    from dccp.fingerprint import file_hash
+
+    good = tmp_path / "a.json"
+    good.write_text("{}", encoding="utf-8")
+    digest = file_hash(good)
+
+    registry = {
+        "root": ".",
+        "entries": [
+            {
+                "scenario_id": "SCENARIO-900",
+                "path": "a.json",
+                "content_sha256": digest,
+                "audit_passed": True,
+            }
+        ],
+    }
+    assert release_gate(registry, base_dir=tmp_path)["passed"] is True
+
+    tampered = dict(registry)
+    tampered["entries"] = [dict(registry["entries"][0], content_sha256="0" * 64)]
+    failed = release_gate(tampered, base_dir=tmp_path)
+    assert any(item["reason"] == "hash_mismatch" for item in failed["failures"])
+
+    unsafe = dict(registry, root="..")
+    unsafe_result = release_gate(unsafe, base_dir=tmp_path)
+    assert any(item["reason"] == "unsafe_registry_root" for item in unsafe_result["failures"])
+
+    relaxed = release_gate(
+        {
+            "entries": [
+                {
+                    "scenario_id": "SCENARIO-900",
+                    "path": "a.json",
+                    "content_sha256": digest,
+                    "audit_passed": False,
+                }
+            ]
+        },
+        require_all_audited=False,
+    )
+    assert relaxed["passed"] is True
+
+
+def test_integrity_additional_failure_paths(tmp_path: Path):
+    from dccp.integrity import manifest_for_files, verify_file_hashes
+
+    good = tmp_path / "a.txt"
+    good.write_text("ok", encoding="utf-8")
+
+    outside = tmp_path.parent / "dccp-integrity-outside.txt"
+    outside.write_text("outside", encoding="utf-8")
+    try:
+        manifest = manifest_for_files([good, outside], base_dir=tmp_path)
+        assert any(item["path"] == outside.as_posix() for item in manifest["files"])
+        issues = verify_file_hashes(
+            {"files": [{"path": "../dccp-integrity-outside.txt", "sha256": file_hash(outside)}]},
+            tmp_path,
+        )
+        assert any(issue.kind == "unsafe_path" for issue in issues)
+    finally:
+        outside.unlink(missing_ok=True)
+
+
+def test_host_modules_and_omics_serialization():
+    from dccp.host_modules import all_module_genes
+    from dccp.omics_map import AxisScoreResult
+
+    genes = all_module_genes()
+    assert "TNNT2" in genes
+    assert "PPARGC1A" in genes
+
+    result = AxisScoreResult(
+        continuous={"inflammatory": 0.123456},
+        ordinal={"inflammatory": "low"},
+        coverage={"inflammatory": 0.5},
+        thresholds=(0.1, 0.25, 0.45, 0.65, 0.85),
+        notes=["x"],
+    )
+    data = result.as_dict()
+    assert data["continuous"]["inflammatory"] == 0.1235
+    assert data["coverage"]["inflammatory"] == 0.5
+
+
+def test_surrogate_fake_cardisim_execution(monkeypatch):
+    import dccp.surrogate as surrogate
+
+    scenario = __import__("dccp.scenario", fromlist=["load_scenario"]).load_scenario(
+        EXAMPLES / "SCENARIO-001.ordinary-mi.json"
+    )
+
+    class FakeResult:
+        def summary(self):
+            return {
+                "events": [{"name": "challenge"}],
+                "initial": {"contractility": 1.0, "viability": 1.0},
+                "final": {"contractility": 0.5, "viability": 0.5},
+                "delta": {"contractility": -0.5, "viability": -0.5},
+                "maturity_score": 0.4,
+                "cardiac_health_score": 0.5,
+            }
+
+    class FakeSimulator:
+        def __init__(self, config):
+            self.config = config
+
+        def run(self, schedule):
+            assert len(schedule.events) >= 1
+            return FakeResult()
+
+    class FakeConfig:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    class FakeEvent:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    class FakeSchedule:
+        def __init__(self, events):
+            self.events = events
+
+    monkeypatch.setattr(
+        surrogate,
+        "_require_cardisim",
+        lambda: (FakeSimulator, FakeConfig, FakeEvent, FakeSchedule),
+    )
+
+    output = surrogate.run_scenario_surrogate(
+        scenario,
+        duration=2,
+        dt=0.5,
+        n_cells=2,
+        seed=1,
+        extra_events=[{"name": "extra", "effects": {"viability": -0.1}}],
+    )
+    assert output["scenario_id"] == "SCENARIO-001"
+    assert output["final"]["viability"] == 0.5
+
+    challenged, rescued, report = surrogate.run_challenge_with_rescue(
+        scenario,
+        duration=2,
+        dt=0.5,
+        n_cells=2,
+        seed=1,
+        rescue={"name": "rescue", "effects": {"viability": 0.2}},
+    )
+    assert challenged["scenario_id"] == rescued["scenario_id"] == "SCENARIO-001"
+    assert report.scenario_id == "SCENARIO-001"
+
+
+def test_cli_command_paths(tmp_path: Path, capsys):
+    from dccp.cli import main
+
+    scenario = str(EXAMPLES / "SCENARIO-001.ordinary-mi.json")
+    draft = tmp_path / "draft.json"
+    bridge = tmp_path / "bridge.json"
+    materialized = tmp_path / "challenge.json"
+    registry = tmp_path / "registry.json"
+    baseline = tmp_path / "baseline.json"
+    challenged = tmp_path / "challenged.json"
+    rescued = tmp_path / "rescued.json"
+    manifest = tmp_path / "manifest.json"
+
+    assert main(["validate", scenario]) == 0
+    assert main(["audit", scenario]) == 0
+    assert main(["show", scenario]) == 0
+    assert main(["assess", scenario]) == 0
+    assert main(["assess", scenario, "--json"]) == 0
+    assert main(["assess", scenario, "--detector", "prototype"]) == 0
+    assert main(["bridge", scenario]) == 0
+    assert main(["bridge", scenario, "-o", str(bridge)]) == 0
+    assert bridge.exists()
+    assert main(["hash", scenario]) == 0
+    assert main(["materialize", "--root", str(EXAMPLES), "-o", str(materialized)]) == 0
+    assert materialized.exists()
+    assert main(["list", "--root", str(EXAMPLES)]) == 0
+    assert main(["recovery-demo", "--scenario-id", "S", "--intervention", "I"]) == 0
+    baseline.write_text(json.dumps({"viability": 1.0}), encoding="utf-8")
+    challenged.write_text(json.dumps({"viability": 0.5}), encoding="utf-8")
+    rescued.write_text(json.dumps({"viability": 0.8}), encoding="utf-8")
+    assert main([
+        "recovery-demo",
+        "--baseline", str(baseline),
+        "--challenged", str(challenged),
+        "--rescued", str(rescued),
+    ]) == 0
+    assert main(["host-panel"]) == 0
+    assert main(["host-panel", "--json"]) == 0
+    assert main(["map-scores", "--scores", "inflammatory=0.8"]) == 0
+    assert main([
+        "map-scores",
+        "--scores", "inflammatory=0.8",
+        "--draft-id", "SCENARIO-902",
+        "-o", str(draft),
+    ]) == 0
+    assert draft.exists()
+    assert main(["accession-digest", "GSE135310"]) == 0
+    assert main(["registry", "--root", str(EXAMPLES), "-o", str(registry)]) == 0
+    assert main(["release-gate", str(registry), "--base", "."]) == 0
+    assert main(["bundle", "--output-dir", str(tmp_path / "bundle"), "--run-id", "r", "--input-files", scenario]) == 0
+
+    manifest.write_text(
+        json.dumps({
+            "files": [{
+                "path": scenario,
+                "sha256": file_hash(EXAMPLES / "SCENARIO-001.ordinary-mi.json"),
+            }]
+        }),
+        encoding="utf-8",
+    )
+    assert main(["integrity", str(manifest), "--base", "."]) == 0
+
+    assert main(["audit-all", str(tmp_path / "missing")]) == 2
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert main(["audit-all", str(empty)]) == 1
+
+    bad = tmp_path / "bad.json"
+    bad.write_text("[]", encoding="utf-8")
+    assert main(["validate", str(bad)]) == 1
+
+    capsys.readouterr()
+
+
+def test_cli_surrogate_error_path(monkeypatch):
+    from dccp.cli import main
+    import dccp.surrogate as surrogate
+
+    def fail(*args, **kwargs):
+        raise ImportError("cardisim missing for test")
+
+    monkeypatch.setattr(surrogate, "run_scenario_surrogate", fail)
+    assert main([
+        "surrogate",
+        str(EXAMPLES / "SCENARIO-001.ordinary-mi.json"),
+    ]) == 2
