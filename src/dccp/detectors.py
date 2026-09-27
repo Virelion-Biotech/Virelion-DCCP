@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from .cardivex_bridge import ordinal_vector_euclidean
 from .evaluate import DefensiveAssessment, _NORMAL, _ORDINARY_TEMPLATES, assess_scenario
 from .scenario import Scenario
 
@@ -25,9 +26,7 @@ def axes_to_vector(axes: Mapping[str, str]) -> list[float]:
 
 
 def _euclid(a: Sequence[float], b: Sequence[float]) -> float:
-    if len(a) != len(b):
-        raise ValueError("prototype vectors must have equal dimensions")
-    return sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
+    return ordinal_vector_euclidean(a, b)
 
 
 class Detector(ABC):
