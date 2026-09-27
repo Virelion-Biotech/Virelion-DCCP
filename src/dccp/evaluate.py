@@ -10,6 +10,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from .cardivex_bridge import ordinal_axis_distance, nearest_ordinal_axis_distance
 from .scenario import Scenario
 
 _LEVEL_ORDER = ["none", "low", "moderate", "substantial", "high", "severe"]
@@ -46,15 +47,7 @@ _ORDINARY_TEMPLATES: dict[str, dict[str, str]] = {
 
 
 def _axis_distance(a: Mapping[str, str], b: Mapping[str, str]) -> float:
-    keys = (set(a) | set(b)) - {"recovery_profile"}
-    if not keys:
-        return 0.0
-    total = 0.0
-    for key in keys:
-        if a.get(key, "none") not in _LEVEL_IDX or b.get(key, "none") not in _LEVEL_IDX:
-            raise ValueError(f"unknown ordinal level for axis {key!r}")
-        total += abs(_LEVEL_IDX[a.get(key, "none")] - _LEVEL_IDX[b.get(key, "none")])
-    return total / len(keys)
+    return ordinal_axis_distance(a, b)
 
 
 @dataclass(frozen=True)
@@ -92,12 +85,11 @@ def assess_scenario(scenario: Scenario, *, ood_threshold: float = 1.5) -> Defens
     abn = _axis_distance(axes, _NORMAL)
 
     best_name: str | None = None
-    best_dist = float("inf")
+    best_dist = nearest_ordinal_axis_distance(axes, list(_ORDINARY_TEMPLATES.values()))
     for name, template in _ORDINARY_TEMPLATES.items():
-        distance = _axis_distance(axes, template)
-        if distance < best_dist:
-            best_dist = distance
+        if abs(_axis_distance(axes, template) - best_dist) <= 1e-12:
             best_name = name
+            break
 
     notes: list[str] = []
     ood = bool(scenario.ood_flag) or best_dist >= ood_threshold
