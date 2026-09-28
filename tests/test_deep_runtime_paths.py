@@ -415,7 +415,7 @@ def test_provenance_validation_and_serialization():
         ArtifactProvenance("A", "json", valid_hash, producer="")
 
 
-def test_surrogate_config_and_optional_dependency_boundary():
+def test_surrogate_config_and_optional_dependency_boundary(monkeypatch):
     assert _validate_run_config(1, 0.5, 1, 7) == (1.0, 0.5, 1, 7)
     with pytest.raises(ValueError):
         _validate_run_config(0, 0.5, 1, 7)
@@ -424,6 +424,8 @@ def test_surrogate_config_and_optional_dependency_boundary():
     with pytest.raises(ValueError):
         _validate_run_config(1, 0.5, 0, 7)
 
+    import sys
+    monkeypatch.setitem(sys.modules, "cardisim", None)
     with pytest.raises(ImportError, match="cardisim is required"):
         _require_cardisim()
 
