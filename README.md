@@ -1,113 +1,63 @@
 # Virelion-DCCP
 
-**Defensive Computational Challenge Platform for human cardiac models**
+DCCP is a defensive computational challenge platform for human cardiac models. It constructs, audits, assesses, and materializes defensive challenge scenarios represented as phenotypic consequence profiles. It tests detection, characterization, out-of-distribution recognition, and host-resilience recovery without recreating an underlying biological threat.
 
-A computational adversarial biological challenge platform that lets defensive AI systems detect, characterize, and respond to *plausible* adversarial biological challenge states—including deliberately atypical and previously unseen phenotypes—without requiring direct recreation of any underlying threat.
+## What it contains
 
-> Central research question  
-> *Can a human cardiac digital surrogate and defensive AI system detect, characterize, and respond to plausible adversarial biological challenge states—including deliberately atypical and previously unseen states—without requiring direct recreation of the underlying threat?*
+- Scenario loading, schema validation, and policy auditing.
+- Phenotypic consequence profiles and challenge scenarios.
+- Defensive detectors including `HeuristicDetector` and `PrototypeDetector`.
+- Simulation event specifications and cardiac-simulation payload generation.
+- Recovery/resilience scoring and optional surrogate evaluation.
+- Challenge-library loading and hashed challenge-set materialization.
+- Host-evidence mapping from module scores to phenotypic axes.
+- Canonical hashing and run provenance.
+- CLI tools for validation, assessment, materialization, recovery, and evidence mapping.
 
-Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
-
-**Version 0.2.0**
-
----
-
-## Design principle: two worlds
-
-### 1. Scenario world
-Structured **phenotypic consequence** profiles (host-response axes only).
-
-### 2. Laboratory / digital surrogate world
-Safe digital (CardiSim) or experimental proxies that reproduce relevant response dimensions for detector and countermeasure tests.
-
-See [`docs/DESIGN.md`](docs/DESIGN.md), [`docs/SAFETY.md`](docs/SAFETY.md), [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
-
----
-
-## Six core questions
-
-1. Detection of unconventional insult (`normal → ordinary → atypical → novel`)
-2. Abnormality recognition outside ordinary disease labels
-3. Mechanism-oriented multi-axis characterization
-4. OOD detection on held-out scenarios
-5. Countermeasure / host-resilience recovery scoring
-6. Full audit + provenance (evidence vs assumptions, hashes)
-
----
-
-## Install & CLI
+## Installation
 
 ```bash
 pip install -e '.[test]'
 pytest -q
+```
 
+## Usage
+
+```bash
 dccp list
 dccp audit-all scenarios
 dccp assess scenarios/examples/SCENARIO-018.heldout-metabolic-vascular.json --detector prototype
 dccp bridge scenarios/examples/SCENARIO-001.ordinary-mi.json
 dccp materialize -o benchmarks/dccp-challenge-set.v1.json
 dccp recovery-demo
-# optional if Virelion-CardiSim is installed:
+```
+
+Optional digital-surrogate evaluation is available when a compatible simulator installation is present:
+
+```bash
 dccp surrogate scenarios/examples/SCENARIO-001.ordinary-mi.json --rescue
 ```
 
-| Command | Purpose |
-|---------|---------|
-| `validate` / `audit` / `audit-all` | Schema + dual-use policy |
-| `show` / `list` | Inspect library |
-| `assess [--detector heuristic\|prototype]` | Defensive assessment |
-| `bridge` | CardiSim event payload |
-| `hash` | Canonical SHA-256 |
-| `materialize` | Hashed challenge set (CardiBench hand-off) |
-| `recovery-demo` | Host-resilience recovery score |
-| `surrogate [--rescue]` | CardiSim run (optional dependency) |
+## Inputs and outputs
 
----
+**Inputs:** phenotypic scenario specifications, host-response axes, challenge-library records, detector configuration, evidence/module scores, and optional simulator/surrogate parameters.
 
-## Scenario ladder (examples)
+**Outputs:** validation/audit reports, defensive assessment results, simulation event payloads, hashed challenge sets, recovery scores, host-axis mappings, canonical digests, and provenance records.
 
-| ID | Role |
-|----|------|
-| `SCENARIO-001` | Ordinary MI-like |
-| `SCENARIO-002` | Ordinary hypoxia-like |
-| `SCENARIO-010` | Atypical multi-axis |
-| `SCENARIO-017` | Held-out multiphasic |
-| `SCENARIO-018` | Held-out metabolic–vascular |
-| `SCENARIO-019` | Held-out delayed structural |
+## Validation
 
----
+Scenario validation checks schema and policy constraints. Assessment supports defensive detector outputs, and challenge materialization records hashes for reproducibility. The scenario ladder separates ordinary, atypical, and held-out cases. Software tests should be run with `pytest -q`.
 
-## Package surface (`dccp`)
+These checks validate computational artifacts and challenge construction; they do not establish biological validity of the represented states.
 
-- **Scenario** load / validate / audit  
-- **CardiSim bridge** (`axes_to_effects`, `scenario_to_cardisim_payload`)  
-- **Detectors**: `HeuristicDetector`, `PrototypeDetector` (fit on ordinary, OOD radius)  
-- **Recovery**: `evaluate_recovery`, optional `run_challenge_with_rescue`  
-- **Library**: `load_library`, `materialize_challenge_set`  
-- **Provenance**: canonical hashes, run records  
+## Limitations
 
----
+Scenarios represent phenotypic consequences rather than complete biological mechanisms. Synthetic or proxy states can differ from real host responses. OOD performance depends on scenario construction and feature representation. Recovery scores are model-dependent. Evidence mappings depend on the quality and completeness of the underlying evidence.
 
-## Stack
+## Safety
 
-| Component | Role |
-|-----------|------|
-| CardiSim | Digital surrogate |
-| CardiTrace / ElectroTrace | Measurements |
-| CardiBench | Leakage-aware benchmarks |
-| CardiLearn | Learned models |
-| **DCCP** | Challenge library + defensive harness |
-
----
-
-## Status
-
-**v0.2.0** — Full defensive loop scaffold: scenario library, OOD ladder, detectors, CardiSim bridge + optional surrogate/rescue, recovery scoring, challenge-set materialization, audit, CI.
-
----
+DCCP does not provide protocols for constructing, optimizing, or reproducing biological threats.
 
 ## License
 
-Copyright (c) 2026 Virelion Biotech  
-GNU Affero General Public License v3.0 — see [LICENSE](LICENSE).
+GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See `LICENSE`.

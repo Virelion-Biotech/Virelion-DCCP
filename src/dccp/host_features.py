@@ -1,158 +1,141 @@
-"""Host profile feature engineering: modules, simple GRN-style aggregates, maturity.
-
-Operates on gene×sample (or gene×cell) matrices provided by the caller.
-Does not download expression data; does not handle pathogen genomes.
-"""
-
+"""Host profile feature engineering for cardiac phenotypic programs."""
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Mapping, Sequence
 
-from .host_modules import (
-    AXIS_TO_CARDISIM_PHENOTYPES,
-    DCCP_AXIS_MODULES,
-    MATURITY_MODULES,
-)
+from .host_modules import AXIS_TO_CARDISIM_PHENOTYPES, DCCP_AXIS_MODULES, MATURITY_MODULES
+
+
+def _validate_expression(expression: Sequence[Sequence[float]], genes: Sequence[str]) -> tuple[int, int]:
+    if len(expression) != len(genes):
+        raise ValueError(f"expression has {len(expression)} rows but genes has {len(genes)} names")
+    if not expression:
+        return 0, 0
+    n_cells = len(expression[0])
+    for row_index, row in enumerate(expression):
+        if len(row) != n_cells:
+            raise ValueError(f"expression row {row_index} has inconsistent cell count")
+        for col_index, value in enumerate(row):
+            value = float(value)
+            if not math.isfinite(value) or value < 0:
+                raise ValueError(f"expression[{row_index}][{col_index}] must be finite and non-negative")
+    return len(expression), n_cells
 
 
 def _index_genes(genes: Sequence[str]) -> dict[str, int]:
-    return {g.upper(): i for i, g in enumerate(genes)}
+    index: dict[str, int] = {}
+    for i, gene in enumerate(genes):
+        key = str(gene).strip().upper()
+        if not key:
+            raise ValueError("gene names must be non-empty")
+        if key in index:
+            raise ValueError(f"duplicate gene name: {gene!r}")
+        index[key] = i
+    return index
 
 
-def log1p_cpm_rows(expression: Sequence[Sequence[float]]) -> list[list[float]]:
-    """Library-size normalize columns and log1p (pure Python, no numpy required)."""
+def log1p_cpm_rows(expression: Sequence[Sequence[float]], *, _validated: bool = False) -> list[list[float]]:
+    """Library-size normalize columns and log1p; input is genes x cells."""
+    if not _validated:
+        _validate_expression(expression, [str(i) for i in range(len(expression))])
     if not expression or not expression[0]:
         return []
-    n_genes = len(expression)
     n_cells = len(expression[0])
     totals = [0.0] * n_cells
-    for i in range(n_genes):
-        row = expression[i]
-        for j in range(n_cells):
-            totals[j] += float(row[j])
+    for row in expression:
+        for j, value in enumerate(row):
+            totals[j] += float(value)
+
     out: list[list[float]] = []
-    for i in range(n_genes):
-        row = expression[i]
-        new_row = []
-        for j in range(n_cells):
-            t = totals[j]
-            if t <= 0:
-                new_row.append(0.0)
-            else:
-                # log1p(x / total * 1e4)
-                x = float(row[j]) / t * 1e4
-                new_row.append(_log1p(x))
+    for row in expression:
+        new_row: list[float] = []
+        for j, value in enumerate(row):
+            total = totals[j]
+            x = float(value) / total * 1e4 if total > 0 else 0.0
+            new_row.append(math.log1p(x))
         out.append(new_row)
     return out
 
 
-def _log1p(x: float) -> float:
-    # series-free stable enough for non-negative x
-    return __import__("math").log1p(x)
-
-
-def module_mean_scores(
-    expression: Sequence[Sequence[float]],
-    genes: Sequence[str],
-    modules: Mapping[str, Sequence[str]],
-) -> dict[str, list[float]]:
-    """Per-column mean of log1p-CPM genes in each module. Shape: module → [n_cells]."""
-    expr = log1p_cpm_rows(expression)
+def _module_mean_scores_from_log(expr: Sequence[Sequence[float]], genes: Sequence[str], modules: Mapping[str, Sequence[str]]) -> dict[str, list[float]]:
     idx = _index_genes(genes)
     n_cells = len(expr[0]) if expr else 0
     result: dict[str, list[float]] = {}
     for name, markers in modules.items():
-        rows = [idx[g.upper()] for g in markers if g.upper() in idx]
+        rows = [idx[str(g).strip().upper()] for g in markers if str(g).strip().upper() in idx]
         if not rows or n_cells == 0:
             result[name] = [0.0] * n_cells
             continue
-        scores = []
-        for j in range(n_cells):
-            scores.append(sum(expr[r][j] for r in rows) / len(rows))
-        result[name] = scores
+        result[name] = [sum(expr[row][j] for row in rows) / len(rows) for j in range(n_cells)]
     return result
+
+
+def module_mean_scores(expression: Sequence[Sequence[float]], genes: Sequence[str], modules: Mapping[str, Sequence[str]]) -> dict[str, list[float]]:
+    """Per-column mean of log1p-CPM genes in each module."""
+    _validate_expression(expression, genes)
+    expr = log1p_cpm_rows(expression, _validated=True)
+    return _module_mean_scores_from_log(expr, genes, modules)
 
 
 def minmax_scale_1d(values: Sequence[float], lo_q: float = 0.01, hi_q: float = 0.99) -> list[float]:
     if not values:
         return []
-    sorted_v = sorted(values)
+    if not 0.0 <= lo_q <= hi_q <= 1.0:
+        raise ValueError("quantile bounds must satisfy 0 <= lo_q <= hi_q <= 1")
+    numeric = [float(value) for value in values]
+    if not all(math.isfinite(value) for value in numeric):
+        raise ValueError("values must all be finite")
+    sorted_v = sorted(numeric)
     n = len(sorted_v)
 
-    def _q(q: float) -> float:
-        i = int(max(0, min(n - 1, round(q * (n - 1)))))
-        return sorted_v[i]
+    def quantile(q: float) -> float:
+        pos = q * (n - 1)
+        low = int(math.floor(pos))
+        high = int(math.ceil(pos))
+        if low == high:
+            return sorted_v[low]
+        weight = pos - low
+        return sorted_v[low] * (1 - weight) + sorted_v[high] * weight
 
-    lo, hi = _q(lo_q), _q(hi_q)
+    lo, hi = quantile(lo_q), quantile(hi_q)
     denom = hi - lo if hi > lo else 1.0
-    return [max(0.0, min(1.0, (v - lo) / denom)) for v in values]
+    return [max(0.0, min(1.0, (value - lo) / denom)) for value in numeric]
 
 
 @dataclass
 class HostProfileFeatures:
-    """Aggregated host features ready for DCCP / CardiSim."""
-
-    axis_scores: dict[str, float]  # mean across cells, [0,1]
+    axis_scores: dict[str, float]
     maturity_scores: dict[str, float]
     cardisim_proxy: dict[str, float]
     n_cells: int
 
-    def as_dict(self) -> dict:
-        return {
-            "axis_scores": dict(self.axis_scores),
-            "maturity_scores": dict(self.maturity_scores),
-            "cardisim_proxy": dict(self.cardisim_proxy),
-            "n_cells": self.n_cells,
-        }
+    def as_dict(self) -> dict[str, object]:
+        return {"axis_scores": dict(self.axis_scores), "maturity_scores": dict(self.maturity_scores), "cardisim_proxy": dict(self.cardisim_proxy), "n_cells": self.n_cells}
 
 
-def extract_host_features(
-    expression: Sequence[Sequence[float]],
-    genes: Sequence[str],
-) -> HostProfileFeatures:
-    """Full host feature pass: DCCP axes, maturity modules, CardiSim-oriented proxies."""
-    axis_raw = module_mean_scores(expression, genes, DCCP_AXIS_MODULES)
-    mat_raw = module_mean_scores(expression, genes, MATURITY_MODULES)
-    n_cells = len(next(iter(axis_raw.values()))) if axis_raw else 0
+def extract_host_features(expression: Sequence[Sequence[float]], genes: Sequence[str]) -> HostProfileFeatures:
+    """Full host feature pass using one library-size normalization of the matrix."""
+    _, n_cells = _validate_expression(expression, genes)
+    expr = log1p_cpm_rows(expression, _validated=True)
+    axis_raw = _module_mean_scores_from_log(expr, genes, DCCP_AXIS_MODULES)
+    mat_raw = _module_mean_scores_from_log(expr, genes, MATURITY_MODULES)
+    axis_scores = {key: (sum(minmax_scale_1d(values)) / len(values) if values else 0.0) for key, values in axis_raw.items()}
+    maturity_scores = {key: (sum(minmax_scale_1d(values)) / len(values) if values else 0.0) for key, values in mat_raw.items()}
 
-    axis_scores = {
-        k: (sum(minmax_scale_1d(v)) / len(v) if v else 0.0) for k, v in axis_raw.items()
-    }
-    maturity_scores = {
-        k: (sum(minmax_scale_1d(v)) / len(v) if v else 0.0) for k, v in mat_raw.items()
-    }
+    inverse: dict[str, list[float]] = {}
+    for axis, phenotypes in AXIS_TO_CARDISIM_PHENOTYPES.items():
+        score = axis_scores.get(axis, 0.0)
+        for phenotype in phenotypes:
+            inverse.setdefault(phenotype, []).append(score)
+    cardisim = {phenotype: sum(values) / len(values) for phenotype, values in inverse.items()}
+    if "cell_death" in axis_scores:
+        cardisim["viability"] = 1.0 - axis_scores["cell_death"]
 
-    # CardiSim proxy: map axis scores onto phenotype names (simple mean of linked axes)
-    cardisim: dict[str, float] = {}
-    inv: dict[str, list[float]] = {}
-    for axis, phenos in AXIS_TO_CARDISIM_PHENOTYPES.items():
-        s = axis_scores.get(axis, 0.0)
-        for p in phenos:
-            inv.setdefault(p, []).append(s)
-    for p, vals in inv.items():
-        cardisim[p] = sum(vals) / len(vals)
-
-    # viability is inverse of cell_death-like signal for downstream forcing intuition
-    if "viability" in cardisim and "cell_death" in axis_scores:
-        cardisim["viability"] = max(0.0, min(1.0, 1.0 - axis_scores["cell_death"]))
-
-    return HostProfileFeatures(
-        axis_scores=axis_scores,
-        maturity_scores=maturity_scores,
-        cardisim_proxy=cardisim,
-        n_cells=n_cells,
-    )
+    return HostProfileFeatures(axis_scores, maturity_scores, cardisim, n_cells)
 
 
-def grn_hub_score(
-    expression: Sequence[Sequence[float]],
-    genes: Sequence[str],
-    hubs: Sequence[str],
-) -> list[float]:
-    """Simple hub aggregate: mean log1p-CPM of listed TF/hub genes per cell.
-
-    Not a full GRN inference — an auditable summary feature for maturity / stress.
-    """
-    mod = {"hubs": tuple(hubs)}
-    return module_mean_scores(expression, genes, mod).get("hubs", [])
+def grn_hub_score(expression: Sequence[Sequence[float]], genes: Sequence[str], hubs: Sequence[str]) -> list[float]:
+    """Simple per-cell mean log1p-CPM aggregate of listed hub genes."""
+    return module_mean_scores(expression, genes, {"hubs": tuple(hubs)}).get("hubs", [])
