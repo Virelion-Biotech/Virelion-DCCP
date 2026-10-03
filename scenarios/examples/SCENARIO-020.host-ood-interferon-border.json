@@ -1,0 +1,43 @@
+{
+  "scenario_id": "SCENARIO-020",
+  "title": "Held-out host phenotype — interferon-borderzone-like axis vector",
+  "description": "Unusual host state vector inspired by public injury-borderzone / interferon-associated cardiac programs (metadata-level). High inflammatory + vascular with moderate metabolic stress and atypical recovery; held out for OOD tests on host profiles — not an agent design.",
+  "tissue": "cardiac",
+  "onset": "rapid",
+  "progression": "biphasic",
+  "phenotypic_axes": {
+    "inflammatory": "high",
+    "vascular_endothelial": "high",
+    "metabolic_mitochondrial": "moderate",
+    "contractile_functional": "moderate",
+    "structural_injury": "low",
+    "cell_death": "low",
+    "remodeling": "moderate",
+    "recovery_profile": "atypical"
+  },
+  "realism_evidence": {
+    "supported_components": [
+      "inflammatory host-response programs (public multi-omics)",
+      "vascular / borderzone-associated host programs",
+      "injury-associated remodeling signatures"
+    ],
+    "references": [
+      "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE269054",
+      "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE135310"
+    ],
+    "proxy_notes": "Ordinal combination is a held-out host phenotype hypothesis anchored to public GEO accessions in the host evidence panel; no expression matrices redistributed."
+  },
+  "scenario_assumptions": {
+    "model_derived_components": [
+      "severity mix across axes",
+      "biphasic timing without matching ordinary MI ordinal template"
+    ],
+    "interaction_hypotheses": [
+      "High inflammatory + vascular with only moderate contractile loss is outside ordinary MI/hypoxia stereotypes"
+    ],
+    "notes": "OOD host state vector for detector evaluation."
+  },
+  "confidence": "exploratory",
+  "ood_flag": true,
+  "version": "1.0.0"
+}

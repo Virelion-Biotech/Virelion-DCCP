@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Virelion-Biotech/Virelion-DCCP/schemas/scenario.schema.json",
+  "title": "DCCP Threat Scenario Representation",
+  "description": "Phenotypic consequence profile for a plausible adversarial biological challenge on cardiac tissue. Encodes only observable host-response dimensions; never agent construction or operational parameters.",
+  "type": "object",
+  "required": [
+    "scenario_id",
+    "title",
+    "tissue",
+    "phenotypic_axes",
+    "realism_evidence",
+    "scenario_assumptions",
+    "confidence"
+  ],
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^SCENARIO-[0-9]{3,}$",
+      "description": "Stable identifier, e.g. SCENARIO-017"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "tissue": {
+      "type": "string",
+      "const": "cardiac"
+    },
+    "onset": {
+      "type": "string",
+      "enum": ["immediate", "rapid", "subacute", "delayed", "insidious"]
+    },
+    "progression": {
+      "type": "string",
+      "enum": ["monotonic", "biphasic", "multiphasic", "resolving", "progressive", "atypical"]
+    },
+    "phenotypic_axes": {
+      "type": "object",
+      "description": "Qualitative or ordinal scores for host-response dimensions",
+      "properties": {
+        "inflammatory": { "$ref": "#/$defs/axis_level" },
+        "vascular_endothelial": { "$ref": "#/$defs/axis_level" },
+        "metabolic_mitochondrial": { "$ref": "#/$defs/axis_level" },
+        "contractile_functional": { "$ref": "#/$defs/axis_level" },
+        "structural_injury": { "$ref": "#/$defs/axis_level" },
+        "cell_death": { "$ref": "#/$defs/axis_level" },
+        "remodeling": { "$ref": "#/$defs/axis_level" },
+        "recovery_profile": {
+          "type": "string",
+          "enum": ["typical", "delayed", "incomplete", "atypical", "none"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "temporal_profile": {
+      "type": "object",
+      "properties": {
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "relative_time": { "type": "string" },
+              "dominant_axes": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "required": ["name"]
+          }
+        }
+      }
+    },
+    "realism_evidence": {
+      "type": "object",
+      "description": "Components supported by real observations, literature, or experimentally characterized proxies",
+      "required": ["supported_components"],
+      "properties": {
+        "supported_components": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "references": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "proxy_notes": { "type": "string" }
+      }
+    },
+    "scenario_assumptions": {
+      "type": "object",
+      "description": "Model-derived or exploratory components that are not directly experimentally established",
+      "required": ["model_derived_components"],
+      "properties": {
+        "model_derived_components": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "interaction_hypotheses": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "moderate", "exploratory"]
+    },
+    "ood_flag": {
+      "type": "boolean",
+      "description": "True if this scenario is intentionally held out or designed to lie outside ordinary training distributions",
+      "default": false
+    },
+    "version": {
+      "type": "string",
+      "default": "1.0.0"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "axis_level": {
+      "type": "string",
+      "enum": ["none", "low", "moderate", "substantial", "high", "severe"]
+    }
+  }
+}

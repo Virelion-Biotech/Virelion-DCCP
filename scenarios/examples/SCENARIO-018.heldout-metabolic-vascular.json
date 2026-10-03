@@ -1,0 +1,40 @@
+{
+  "scenario_id": "SCENARIO-018",
+  "title": "Held-out metabolic–vascular dominant challenge",
+  "description": "Novel held-out profile: severe mitochondrial/metabolic and vascular axes with muted acute inflammation and low structural injury — designed to fall outside ordinary MI/hypoxia stereotypes.",
+  "tissue": "cardiac",
+  "onset": "rapid",
+  "progression": "progressive",
+  "phenotypic_axes": {
+    "inflammatory": "low",
+    "vascular_endothelial": "severe",
+    "metabolic_mitochondrial": "severe",
+    "contractile_functional": "high",
+    "structural_injury": "low",
+    "cell_death": "moderate",
+    "remodeling": "none",
+    "recovery_profile": "incomplete"
+  },
+  "realism_evidence": {
+    "supported_components": [
+      "mitochondrial / metabolic disturbance",
+      "endothelial dysfunction",
+      "contractile impairment"
+    ],
+    "references": [],
+    "proxy_notes": "Individual axes are host-response patterns described in public cardiac stress literature; severity combination is held-out for OOD tests."
+  },
+  "scenario_assumptions": {
+    "model_derived_components": [
+      "severe vascular + metabolic with low inflammation",
+      "progressive course without classic fibrotic remodeling"
+    ],
+    "interaction_hypotheses": [
+      "Metabolic–vascular coupling can drive high contractile loss without high inflammatory ordinal scores"
+    ],
+    "notes": "Intentionally held out from ordinary templates."
+  },
+  "confidence": "exploratory",
+  "ood_flag": true,
+  "version": "1.0.0"
+}
