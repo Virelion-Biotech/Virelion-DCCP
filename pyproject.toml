@@ -24,10 +24,12 @@ classifiers = [
 ]
 dependencies = [
   "jsonschema>=4.20",
-  "virelion-cardivex @ git+https://github.com/Virelion-Biotech/Virelion-CardiVex.git@0b3dfa358443dfff8f25dbf9594f8d461eddd17f",
 ]
 
 [project.optional-dependencies]
+cardivex = [
+  "virelion-cardivex @ git+https://github.com/Virelion-Biotech/Virelion-CardiVex.git@main",
+]
 test = ["pytest>=7.4", "pytest-cov>=4.1"]
 
 [project.scripts]
