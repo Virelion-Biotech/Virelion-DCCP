@@ -24,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
   "jsonschema>=4.20",
-  "virelion-cardivex @ git+https://github.com/Virelion-Biotech/Virelion-CardiVex.git@1e3af09c87c6d3567b85f59379367d07c1078d20",
+  "virelion-cardivex @ git+https://github.com/Virelion-Biotech/Virelion-CardiVex.git@main",
 ]
 
 [project.optional-dependencies]
