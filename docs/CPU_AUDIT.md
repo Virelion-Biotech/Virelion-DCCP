@@ -151,4 +151,4 @@ mutable-main validation code.
 
 ## Publication provenance
 
-Implementation commit: `a1c73685d2318b187ea050c1d49ee64eb411a604`. The canonical notebook pins this commit; it runs the verified source and independently regenerates the report. Hosted verification includes six jobs: four Python versions, actual pinned stack adapters, and the isolated wheel. Current runs are at https://github.com/Virelion-Biotech/Virelion-DCCP/actions/workflows/ci.yml .
+Original implementation commit: `a1c73685d2318b187ea050c1d49ee64eb411a604`. Finalized source: `3ed75b8153ae36dc0716d26f81ee4a8cf8d3786d`. The canonical notebook pins the finalized source; it runs the verified source and independently regenerates the report. Hosted verification includes six jobs: four Python versions, actual pinned stack adapters, and the isolated wheel. Current runs are at https://github.com/Virelion-Biotech/Virelion-DCCP/actions/workflows/ci.yml .
