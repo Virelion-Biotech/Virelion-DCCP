@@ -95,3 +95,5 @@ Strict JSON, atomic writes, portable challenge hashes, manifest verification and
 content re-auditing protect artifact integrity. The installed wheel includes the
 example library, so `dccp list` works outside the repository. Full API compatibility
 changes and scientific limits are documented in the audit.
+
+The canonical [CPU validation notebook](notebooks/DCCP_CPU_Validation.ipynb) uses an exact implementation commit, an isolated environment and automatic result download in Colab. Older notebook entry points are archived.

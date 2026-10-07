@@ -147,3 +147,7 @@ wheel validation. Challenge-set version 1.1.0 records the relative-path/hash cha
 The canonical CPU notebook is generated with an exact implementation commit;
 older notebook names are explicitly archived rather than silently running stale
 mutable-main validation code.
+
+## Publication provenance
+
+Implementation commit: `a1c73685d2318b187ea050c1d49ee64eb411a604`. The canonical notebook pins this commit; it runs the verified source and independently regenerates the report. Hosted verification includes six jobs: four Python versions, actual pinned stack adapters, and the isolated wheel. Current runs are at https://github.com/Virelion-Biotech/Virelion-DCCP/actions/workflows/ci.yml .
