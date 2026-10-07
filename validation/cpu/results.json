@@ -352,7 +352,7 @@
     "src/dccp/evaluate.py": "bca2d94efc591ed0b2ffb229df873121a26349050a39fb647607f52e594d935b",
     "src/dccp/evaluation_protocol.py": "98f75f19fa74b2057d5516616d98c6fd91367d7efd62b57e37da2ed7a3640f4d",
     "src/dccp/fingerprint.py": "0c4d4e78d3146821ab1a8d3c25e27548723ad4e6d2163afa6464730bb8aa361e",
-    "src/dccp/host_features.py": "0a72617658004d384d28fa5dabd5434b6677a7703fd60f5319672aa980d01645",
+    "src/dccp/host_features.py": "f5485e023cf272ecfe2134121f4b5bab6e0e07351a24f68f9778aaf4380fc9ea",
     "src/dccp/host_modules.py": "516f01e00f4a9f16c505f6fef07658e561dba80e4125a937b2913613f987e992",
     "src/dccp/ingest.py": "1da8bcad6bfd84acbb4294fa367fc075a56b7e033c6e8eb2fa0e4c43d9eec852",
     "src/dccp/integrity.py": "3e1a5d01ec3755e9ecfcd8ee32b936c6c73d3c34440d78b4f790937d91ab3e69",

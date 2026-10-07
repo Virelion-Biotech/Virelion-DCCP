@@ -163,7 +163,7 @@ def test_host_feature_edge_paths():
 
     expr = [[1.0, 0.0], [0.0, 2.0]]
     scores = module_mean_scores(expr, ["A", "B"], {"none": ("C",)})
-    assert scores["none"] == [0.0, 0.0]
+    assert scores["none"] == [None, None]
     assert grn_hub_score(expr, ["A", "B"], ["A"]) == pytest.approx(
         module_mean_scores(expr, ["A", "B"], {"hubs": ("A",)})["hubs"]
     )

@@ -69,14 +69,14 @@ def log1p_cpm_rows(
 
 def _module_mean_scores_from_log(
     expr: Sequence[Sequence[float]], genes: Sequence[str], modules: Mapping[str, Sequence[str]]
-) -> dict[str, list[float]]:
+) -> dict[str, list[float | None]]:
     idx = _index_genes(genes)
     n_cells = len(expr[0]) if expr else 0
-    result: dict[str, list[float]] = {}
+    result: dict[str, list[float | None]] = {}
     for name, markers in modules.items():
         rows = [idx[str(g).strip().upper()] for g in markers if str(g).strip().upper() in idx]
         if not rows or n_cells == 0:
-            result[name] = [0.0] * n_cells
+            result[name] = [None] * n_cells
             continue
         result[name] = [sum(expr[row][j] for row in rows) / len(rows) for j in range(n_cells)]
     return result
@@ -86,8 +86,8 @@ def module_mean_scores(
     expression: Sequence[Sequence[float]],
     genes: Sequence[str],
     modules: Mapping[str, Sequence[str]],
-) -> dict[str, list[float]]:
-    """Per-column mean of log1p-CP10K genes in each module."""
+) -> dict[str, list[float | None]]:
+    """Per-column mean of observed log1p-CP10K markers; missing modules are None."""
     _validate_expression(expression, genes)
     expr = log1p_cpm_rows(expression, _validated=True)
     return _module_mean_scores_from_log(expr, genes, modules)
@@ -183,6 +183,6 @@ def extract_host_features(
 
 def grn_hub_score(
     expression: Sequence[Sequence[float]], genes: Sequence[str], hubs: Sequence[str]
-) -> list[float]:
-    """Simple per-cell mean log1p-CP10K aggregate of listed hub genes."""
+) -> list[float | None]:
+    """Per-cell mean observed hub-marker abundance; missing hub sets are None."""
     return module_mean_scores(expression, genes, {"hubs": tuple(hubs)}).get("hubs", [])

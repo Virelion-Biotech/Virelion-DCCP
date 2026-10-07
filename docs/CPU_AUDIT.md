@@ -74,7 +74,8 @@ encoded in metadata. Empirical validation is explicitly `not_validated`.
   The configured prototype abnormality radius now controls its decision in raw
   ordinal-vector Euclidean units. Ordinal values are equally spaced heuristics.
 - Missing scores/genes are unavailable (`null`), not evidence of a healthy state.
-  Incomplete omics-derived drafts carry `unavailable_axes` and cannot silently enter
+  Low-level module/hub helpers also return unavailable values when no markers
+  are measured. Incomplete omics-derived drafts carry `unavailable_axes` and cannot silently enter
   detector assessment. Unknown axes and out-of-range scores fail.
 - Raw host marker means and gene coverage are retained. Relative scores describe
   within-profile heterogeneity, with invariant profiles unavailable. They are not
