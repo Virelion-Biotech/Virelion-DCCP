@@ -9,18 +9,40 @@ from typing import Any
 
 from .scenario import Scenario
 
-_LEVEL_SCALE = {"none": 0.0, "low": 0.15, "moderate": 0.35, "substantial": 0.55, "high": 0.75, "severe": 0.95}
+_LEVEL_SCALE = {
+    "none": 0.0,
+    "low": 0.15,
+    "moderate": 0.35,
+    "substantial": 0.55,
+    "high": 0.75,
+    "severe": 0.95,
+}
 _AXIS_TO_CARDISIM = {
     "inflammatory": {"inflammation": 1.0, "oxidative_stress": 0.4},
     "vascular_endothelial": {"angiogenesis": -0.5, "viability": -0.15},
-    "metabolic_mitochondrial": {"metabolism": -0.8, "mitochondrial_health": -1.0, "oxidative_stress": 0.5},
-    "contractile_functional": {"contractility": -1.0, "calcium_handling": -0.6, "electrophysiology": -0.35},
+    "metabolic_mitochondrial": {
+        "metabolism": -0.8,
+        "mitochondrial_health": -1.0,
+        "oxidative_stress": 0.5,
+    },
+    "contractile_functional": {
+        "contractility": -1.0,
+        "calcium_handling": -0.6,
+        "electrophysiology": -0.35,
+    },
     "structural_injury": {"fibrosis": 0.9, "hypertrophy": 0.35},
     "cell_death": {"viability": -1.0},
     "remodeling": {"fibrosis": 0.45, "hypertrophy": 0.4, "maturity": -0.1},
 }
 _ONSET_DAYS = {"immediate": 0.0, "rapid": 0.0, "subacute": 1.0, "delayed": 3.0, "insidious": 5.0}
-_PROGRESSION_DURATION = {"monotonic": 5.0, "biphasic": 3.0, "multiphasic": 2.5, "resolving": 4.0, "progressive": 8.0, "atypical": 4.0}
+_PROGRESSION_DURATION = {
+    "monotonic": 5.0,
+    "biphasic": 3.0,
+    "multiphasic": 2.5,
+    "resolving": 4.0,
+    "progressive": 8.0,
+    "atypical": 4.0,
+}
 _KNOWN_AXES = frozenset(_AXIS_TO_CARDISIM) | {"recovery_profile"}
 
 
@@ -45,7 +67,9 @@ class CardisimEventSpec:
     def __post_init__(self) -> None:
         if not self.name.strip():
             raise ValueError("event name must be non-empty")
-        onset, duration, magnitude, recovery = map(float, (self.onset, self.duration, self.magnitude, self.recovery))
+        onset, duration, magnitude, recovery = map(
+            float, (self.onset, self.duration, self.magnitude, self.recovery)
+        )
         if not math.isfinite(onset) or onset < 0:
             raise ValueError("onset must be finite and non-negative")
         if not math.isfinite(duration) or duration <= 0:
@@ -56,7 +80,14 @@ class CardisimEventSpec:
             raise ValueError("event effects must be finite numbers")
 
     def as_dict(self) -> dict[str, Any]:
-        return {"name": self.name, "onset": float(self.onset), "duration": float(self.duration), "magnitude": float(self.magnitude), "effects": dict(self.effects), "recovery": float(self.recovery)}
+        return {
+            "name": self.name,
+            "onset": float(self.onset),
+            "duration": float(self.duration),
+            "magnitude": float(self.magnitude),
+            "effects": dict(self.effects),
+            "recovery": float(self.recovery),
+        }
 
 
 def axes_to_effects(axes: Mapping[str, str]) -> dict[str, float]:
@@ -79,7 +110,15 @@ def scenario_to_event_specs(scenario: Scenario) -> list[CardisimEventSpec]:
     base_duration = _PROGRESSION_DURATION.get(scenario.progression or "monotonic", 4.0)
     phases = scenario.temporal_profile.get("phases") if scenario.temporal_profile else None
     if not phases:
-        return [CardisimEventSpec(scenario.scenario_id, onset, base_duration, 1.0, axes_to_effects(scenario.phenotypic_axes))]
+        return [
+            CardisimEventSpec(
+                scenario.scenario_id,
+                onset,
+                base_duration,
+                1.0,
+                axes_to_effects(scenario.phenotypic_axes),
+            )
+        ]
     if not isinstance(phases, list):
         raise ValueError("temporal_profile.phases must be a list")
     specs: list[CardisimEventSpec] = []
@@ -93,25 +132,44 @@ def scenario_to_event_specs(scenario: Scenario) -> list[CardisimEventSpec]:
         dominant = {str(axis).strip() for axis in (phase.get("dominant_axes") or [])}
         unknown = dominant - _KNOWN_AXES
         if unknown:
-            raise ValueError(f"temporal_profile.phases[{index}] contains unknown axes: {', '.join(sorted(unknown))}")
+            raise ValueError(
+                f"temporal_profile.phases[{index}] contains unknown axes: {', '.join(sorted(unknown))}"
+            )
         dominant.discard("recovery_profile")
-        full_axes = {axis: level for axis, level in scenario.phenotypic_axes.items() if axis != "recovery_profile"}
+        full_axes = {
+            axis: level
+            for axis, level in scenario.phenotypic_axes.items()
+            if axis != "recovery_profile"
+        }
         if dominant:
             dominant_axes = {axis: full_axes[axis] for axis in dominant if axis in full_axes}
             missing = dominant - set(dominant_axes)
             if missing:
-                raise ValueError(f"temporal_profile.phases[{index}] names axes absent from phenotypic_axes: {', '.join(sorted(missing))}")
+                raise ValueError(
+                    f"temporal_profile.phases[{index}] names axes absent from phenotypic_axes: {', '.join(sorted(missing))}"
+                )
         else:
             dominant_axes = full_axes
-        residual_axes = {axis: level for axis, level in full_axes.items() if axis not in dominant_axes}
+        residual_axes = {
+            axis: level for axis, level in full_axes.items() if axis not in dominant_axes
+        }
         effects = axes_to_effects(dominant_axes)
         for phenotype, value in axes_to_effects(residual_axes).items():
             effects[phenotype] = max(-1.0, min(1.0, effects.get(phenotype, 0.0) + 0.5 * value))
-        specs.append(CardisimEventSpec(f"{scenario.scenario_id}:{name}", time, base_duration, 1.0, effects))
+        specs.append(
+            CardisimEventSpec(f"{scenario.scenario_id}:{name}", time, base_duration, 1.0, effects)
+        )
         time += base_duration
     return specs
 
 
 def scenario_to_cardisim_payload(scenario: Scenario) -> dict[str, Any]:
     specs = scenario_to_event_specs(scenario)
-    return {"scenario_id": scenario.scenario_id, "confidence": scenario.confidence, "ood_flag": scenario.ood_flag, "phenotypic_axes": dict(scenario.phenotypic_axes), "events": [spec.as_dict() for spec in specs], "mapping_notes": "Effects are transparent host-response proxies derived from DCCP axes; they are not pathogen or agent parameters."}
+    return {
+        "scenario_id": scenario.scenario_id,
+        "confidence": scenario.confidence,
+        "ood_flag": scenario.ood_flag,
+        "phenotypic_axes": dict(scenario.phenotypic_axes),
+        "events": [spec.as_dict() for spec in specs],
+        "mapping_notes": "Effects are transparent host-response proxies derived from DCCP axes; they are not pathogen or agent parameters.",
+    }

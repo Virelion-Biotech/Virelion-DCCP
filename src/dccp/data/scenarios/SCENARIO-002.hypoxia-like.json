@@ -1,0 +1,38 @@
+{
+  "scenario_id": "SCENARIO-002",
+  "title": "Hypoxia-like metabolic-vascular phenotype",
+  "description": "Ordinary-pathology style profile dominated by metabolic and contractile stress with moderate inflammation — second anchor on the evaluation ladder.",
+  "tissue": "cardiac",
+  "onset": "subacute",
+  "progression": "monotonic",
+  "phenotypic_axes": {
+    "inflammatory": "moderate",
+    "vascular_endothelial": "substantial",
+    "metabolic_mitochondrial": "high",
+    "contractile_functional": "substantial",
+    "structural_injury": "low",
+    "cell_death": "moderate",
+    "remodeling": "low",
+    "recovery_profile": "delayed"
+  },
+  "realism_evidence": {
+    "supported_components": [
+      "metabolic / mitochondrial stress under hypoxia-like conditions",
+      "contractile impairment",
+      "angiogenic / vascular response"
+    ],
+    "references": [],
+    "proxy_notes": "Phenotypic axes only; mirrors patterns used in CardiSim hypoxia preset effects without claiming identity."
+  },
+  "scenario_assumptions": {
+    "model_derived_components": [
+      "ordinal severity mapping",
+      "recovery labeled delayed rather than incomplete"
+    ],
+    "interaction_hypotheses": [],
+    "notes": "Ordinary metabolic-stress anchor."
+  },
+  "confidence": "moderate",
+  "ood_flag": false,
+  "version": "1.0.0"
+}

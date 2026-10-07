@@ -138,7 +138,7 @@ def test_evaluation_protocol_error_and_empty_paths():
         CaseResult("", True, True)
     with pytest.raises(ValueError):
         CaseResult("X", True, True, score=float("inf"))
-    assert wilson_interval(0, 0) == (0.0, 0.0)
+    assert wilson_interval(0, 0) == (0.0, 1.0)
     with pytest.raises(ValueError):
         wilson_interval(-1, 2)
     with pytest.raises(ValueError):
@@ -235,18 +235,21 @@ def test_integrity_manifest_generation_and_failure_kinds(tmp_path: Path):
 def test_release_gate_failure_matrix():
     assert release_gate({})["passed"] is False
     assert release_gate({"entries": [{}]})["passed"] is False
-    assert release_gate(
-        {
-            "entries": [
-                {
-                    "scenario_id": "A",
-                    "path": "a.json",
-                    "content_sha256": "0" * 64,
-                    "audit_passed": False,
-                }
-            ]
-        }
-    )["passed"] is False
+    assert (
+        release_gate(
+            {
+                "entries": [
+                    {
+                        "scenario_id": "A",
+                        "path": "a.json",
+                        "content_sha256": "0" * 64,
+                        "audit_passed": False,
+                    }
+                ]
+            }
+        )["passed"]
+        is False
+    )
 
 
 def test_cardisim_edge_paths():
@@ -305,9 +308,7 @@ def test_detector_serialization_and_failure_paths():
     restored = PrototypeDetector.from_dict(payload)
     assert restored.to_dict()["ood_radius"] == det.ood_radius
 
-    only_normal = PrototypeDetector(
-        prototypes={"normal": [0.0] * 7}
-    )
+    only_normal = PrototypeDetector(prototypes={"normal": [0.0] * 7})
     with pytest.raises(ValueError):
         only_normal.assess(_scenario())
 
@@ -318,6 +319,7 @@ def test_omics_mapping_and_panel_edge_paths(tmp_path: Path, monkeypatch: pytest.
         ordinal_to_rank("unknown")
 
     import dccp.omics_map as omics_map
+
     monkeypatch.setattr(omics_map, "__file__", str(tmp_path / "fake" / "module.py"))
     with pytest.raises(FileNotFoundError):
         load_host_evidence_panel(tmp_path / "missing.json")
@@ -425,6 +427,7 @@ def test_surrogate_config_and_optional_dependency_boundary(monkeypatch):
         _validate_run_config(1, 0.5, 0, 7)
 
     import sys
+
     monkeypatch.setitem(sys.modules, "cardisim", None)
     with pytest.raises(ImportError, match="cardisim is required"):
         _require_cardisim()
@@ -477,7 +480,6 @@ def test_schedule_conversion():
     assert schedule.events[1].kwargs["recovery"] == 1.0
 
 
-
 def test_audit_policy_warning_and_error_branches(monkeypatch: pytest.MonkeyPatch):
     import dccp.audit as audit_module
 
@@ -502,14 +504,20 @@ def test_audit_policy_warning_and_error_branches(monkeypatch: pytest.MonkeyPatch
         "progression": "monotonic",
         "scenario_assumptions": {"model_derived_components": []},
     }
-    exploratory_result = __import__("dccp.audit", fromlist=["audit_scenario"]).audit_scenario(exploratory)
-    assert any("model_derived_components" in warning for warning in exploratory_result.policy_warnings)
+    exploratory_result = __import__("dccp.audit", fromlist=["audit_scenario"]).audit_scenario(
+        exploratory
+    )
+    assert any(
+        "model_derived_components" in warning for warning in exploratory_result.policy_warnings
+    )
 
     forbidden = {
         **_scenario().raw,
         "description": "contains a weapon term",
     }
-    forbidden_result = __import__("dccp.audit", fromlist=["audit_scenario"]).audit_scenario(forbidden)
+    forbidden_result = __import__("dccp.audit", fromlist=["audit_scenario"]).audit_scenario(
+        forbidden
+    )
     assert forbidden_result.policy_errors
     assert "weapon" in forbidden_result.policy_errors[0]
 
@@ -521,7 +529,9 @@ def test_audit_policy_warning_and_error_branches(monkeypatch: pytest.MonkeyPatch
 
     no_evidence = {**_scenario().raw, "realism_evidence": {"supported_components": []}}
     no_evidence_result = audit_module.audit_scenario(no_evidence)
-    assert any("supported_components must list" in error for error in no_evidence_result.policy_errors)
+    assert any(
+        "supported_components must list" in error for error in no_evidence_result.policy_errors
+    )
 
 
 def test_evaluate_unknown_axis_and_normal_profile():
@@ -572,7 +582,9 @@ def test_release_gate_integrity_branches(tmp_path: Path):
     from dccp.fingerprint import file_hash
 
     good = tmp_path / "a.json"
-    good.write_text("{}", encoding="utf-8")
+    good.write_text(
+        json.dumps({**dict(_scenario().raw), "scenario_id": "SCENARIO-900"}), encoding="utf-8"
+    )
     digest = file_hash(good)
 
     registry = {
@@ -622,8 +634,8 @@ def test_integrity_additional_failure_paths(tmp_path: Path):
     outside = tmp_path.parent / "dccp-integrity-outside.txt"
     outside.write_text("outside", encoding="utf-8")
     try:
-        manifest = manifest_for_files([good, outside], base_dir=tmp_path)
-        assert any(item["path"] == outside.as_posix() for item in manifest["files"])
+        with pytest.raises(ValueError, match="outside base_dir"):
+            manifest_for_files([good, outside], base_dir=tmp_path)
         issues = verify_file_hashes(
             {"files": [{"path": "../dccp-integrity-outside.txt", "sha256": file_hash(outside)}]},
             tmp_path,
@@ -750,34 +762,67 @@ def test_cli_command_paths(tmp_path: Path, capsys):
     baseline.write_text(json.dumps({"viability": 1.0}), encoding="utf-8")
     challenged.write_text(json.dumps({"viability": 0.5}), encoding="utf-8")
     rescued.write_text(json.dumps({"viability": 0.8}), encoding="utf-8")
-    assert main([
-        "recovery-demo",
-        "--baseline", str(baseline),
-        "--challenged", str(challenged),
-        "--rescued", str(rescued),
-    ]) == 0
+    assert (
+        main(
+            [
+                "recovery-demo",
+                "--baseline",
+                str(baseline),
+                "--challenged",
+                str(challenged),
+                "--rescued",
+                str(rescued),
+            ]
+        )
+        == 0
+    )
     assert main(["host-panel"]) == 0
     assert main(["host-panel", "--json"]) == 0
     assert main(["map-scores", "--scores", "inflammatory=0.8"]) == 0
-    assert main([
-        "map-scores",
-        "--scores", "inflammatory=0.8",
-        "--draft-id", "SCENARIO-902",
-        "-o", str(draft),
-    ]) == 0
+    assert (
+        main(
+            [
+                "map-scores",
+                "--scores",
+                "inflammatory=0.8",
+                "--draft-id",
+                "SCENARIO-902",
+                "-o",
+                str(draft),
+            ]
+        )
+        == 0
+    )
     assert draft.exists()
     assert main(["accession-digest", "GSE135310"]) == 0
     assert main(["registry", "--root", str(EXAMPLES), "-o", str(registry)]) == 0
     assert main(["release-gate", str(registry), "--base", "."]) == 0
-    assert main(["bundle", "--output-dir", str(tmp_path / "bundle"), "--run-id", "r", "--input-files", scenario]) == 0
+    assert (
+        main(
+            [
+                "bundle",
+                "--output-dir",
+                str(tmp_path / "bundle"),
+                "--run-id",
+                "r",
+                "--input-files",
+                scenario,
+            ]
+        )
+        == 0
+    )
 
     manifest.write_text(
-        json.dumps({
-            "files": [{
-                "path": scenario,
-                "sha256": file_hash(EXAMPLES / "SCENARIO-001.ordinary-mi.json"),
-            }]
-        }),
+        json.dumps(
+            {
+                "files": [
+                    {
+                        "path": scenario,
+                        "sha256": file_hash(EXAMPLES / "SCENARIO-001.ordinary-mi.json"),
+                    }
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     assert main(["integrity", str(manifest), "--base", "."]) == 0
@@ -802,10 +847,15 @@ def test_cli_surrogate_error_path(monkeypatch):
         raise ImportError("cardisim missing for test")
 
     monkeypatch.setattr(surrogate, "run_scenario_surrogate", fail)
-    assert main([
-        "surrogate",
-        str(EXAMPLES / "SCENARIO-001.ordinary-mi.json"),
-    ]) == 2
+    assert (
+        main(
+            [
+                "surrogate",
+                str(EXAMPLES / "SCENARIO-001.ordinary-mi.json"),
+            ]
+        )
+        == 2
+    )
 
 
 def test_library_ladder_role_does_not_use_substring_mi():

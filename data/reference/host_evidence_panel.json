@@ -1,34 +1,57 @@
 {
   "schema_version": "1.0",
-  "purpose": "Public host multi-omics accessions that can evidence DCCP phenotypic axes (cardiac injury / inflammation / remodeling). Metadata only — no expression matrices redistributed.",
+  "purpose": "Public host multi-omics accessions that can evidence DCCP phenotypic axes (cardiac injury / inflammation / remodeling). Metadata only \u2014 no expression matrices redistributed.",
   "policy": "public_accession_metadata_only",
   "axis_evidence": {
     "inflammatory": {
-      "accessions": ["GSE135310", "GSE216211", "GSE153480"],
+      "accessions": [
+        "GSE135310",
+        "GSE216211",
+        "GSE153480"
+      ],
       "notes": "Post-MI immune / inflammatory cell programs in mouse heart"
     },
     "vascular_endothelial": {
-      "accessions": ["GSE269054", "GSE185289"],
+      "accessions": [
+        "GSE269054",
+        "GSE185289"
+      ],
       "notes": "Injury borderzone and regeneration-associated vascular programs"
     },
     "metabolic_mitochondrial": {
-      "accessions": ["GSE185289", "GSE240848"],
+      "accessions": [
+        "GSE185289",
+        "GSE240848"
+      ],
       "notes": "Injury and maturation-associated metabolic / mitochondrial module shifts"
     },
     "contractile_functional": {
-      "accessions": ["GSE185289", "GSE240848", "GSE153480"],
+      "accessions": [
+        "GSE185289",
+        "GSE240848",
+        "GSE153480"
+      ],
       "notes": "Cardiomyocyte contractile / sarcomere module depression after injury"
     },
     "structural_injury": {
-      "accessions": ["GSE185289", "GSE269054"],
+      "accessions": [
+        "GSE185289",
+        "GSE269054"
+      ],
       "notes": "Fibrotic / structural remodeling signatures post-injury"
     },
     "cell_death": {
-      "accessions": ["GSE240848", "GSE153480"],
+      "accessions": [
+        "GSE240848",
+        "GSE153480"
+      ],
       "notes": "Acute injury viability / stress programs (host-side proxies only)"
     },
     "remodeling": {
-      "accessions": ["GSE185289", "GSE216211"],
+      "accessions": [
+        "GSE185289",
+        "GSE216211"
+      ],
       "notes": "Late remodeling and macrophage-associated remodeling states"
     }
   },
@@ -38,54 +61,130 @@
       "repository": "GEO",
       "organism": "Sus scrofa",
       "modality": "snRNA-seq",
-      "roles": ["maturation", "injury", "remodeling", "regeneration"],
+      "roles": [
+        "maturation",
+        "injury",
+        "remodeling",
+        "regeneration"
+      ],
       "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE185289",
-      "status": "metadata_locked"
+      "status": "series_metadata_verified",
+      "verification": {
+        "retrieved_utc": "2026-10-07",
+        "series_metadata_sha256": "7a64603e3b9261b6ec0ee52d92c37767998a4c53e6b86e398284e98626ce1fac",
+        "series_title": "Single nucleus transcriptomics: Apical resection in newborn pigs extends the time-window of cardiomyocyte proliferation and myocardial regeneration",
+        "n_geo_sample_records": 56,
+        "donor_mapping": "unresolved",
+        "expression_validation": "not_performed",
+        "metadata_url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE185289&targ=self&form=text&view=brief"
+      }
     },
     {
       "accession": "GSE240848",
       "repository": "GEO",
       "organism": "Rattus norvegicus",
       "modality": "snRNA-seq",
-      "roles": ["acute_mi", "ischemia_reperfusion"],
+      "roles": [
+        "acute_mi",
+        "ischemia_reperfusion"
+      ],
       "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE240848",
-      "status": "metadata_locked"
+      "status": "series_metadata_verified",
+      "verification": {
+        "retrieved_utc": "2026-10-07",
+        "series_metadata_sha256": "33d61ba1e93673efe73406468baaffa14e959a7ef5f954f6744685f2aed56ef2",
+        "series_title": "Multi-omics analysis of early reperfused ischemic heart reveals ERR\u03b2/\u03b3 activation protects against acute myocardial infarction injury [snRNA-seq]",
+        "n_geo_sample_records": 4,
+        "donor_mapping": "unresolved",
+        "expression_validation": "not_performed",
+        "metadata_url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE240848&targ=self&form=text&view=brief"
+      }
     },
     {
       "accession": "GSE135310",
       "repository": "GEO",
       "organism": "Mus musculus",
       "modality": "scRNA-seq",
-      "roles": ["inflammation", "post_mi_timecourse"],
+      "roles": [
+        "inflammation",
+        "post_mi_timecourse"
+      ],
       "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE135310",
-      "status": "metadata_locked"
+      "status": "series_metadata_verified",
+      "verification": {
+        "retrieved_utc": "2026-10-07",
+        "series_metadata_sha256": "88997d739da49c9632e2a03d4b73a473636a5ba7091e5ef443bb3ad77c2e1089",
+        "series_title": "Time series single cell transcriptomics of cardiac inflammation after myocardial infarction in mice",
+        "n_geo_sample_records": 7,
+        "donor_mapping": "unresolved",
+        "expression_validation": "not_performed",
+        "metadata_url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE135310&targ=self&form=text&view=brief"
+      }
     },
     {
       "accession": "GSE153480",
       "repository": "GEO",
       "organism": "Mus musculus",
       "modality": "scRNA-seq",
-      "roles": ["neonatal_regeneration", "mi_sham"],
+      "roles": [
+        "neonatal_regeneration",
+        "mi_sham"
+      ],
       "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE153480",
-      "status": "metadata_locked"
+      "status": "series_metadata_verified",
+      "verification": {
+        "retrieved_utc": "2026-10-07",
+        "series_metadata_sha256": "a21f20fe2ac9798ce9928e82c88c3810a87188233a11a1c34ddcde8dc82482bf",
+        "series_title": "Single cell RNA-seq of neonatal heart regeneration",
+        "n_geo_sample_records": 8,
+        "donor_mapping": "unresolved",
+        "expression_validation": "not_performed",
+        "metadata_url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE153480&targ=self&form=text&view=brief"
+      }
     },
     {
       "accession": "GSE216211",
       "repository": "GEO",
       "organism": "Mus musculus",
       "modality": "scRNA-seq",
-      "roles": ["macrophage", "remodeling"],
+      "roles": [
+        "macrophage",
+        "remodeling"
+      ],
       "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE216211",
-      "status": "metadata_locked"
+      "status": "series_metadata_verified",
+      "verification": {
+        "retrieved_utc": "2026-10-07",
+        "series_metadata_sha256": "398247172afc47ee2d997cb2b49ae9dc6b4fa8f4e90b2427fd644fee9548b373",
+        "series_title": "A subset of temporary resident cardiac macrophages induced by myocardial infarction limits adverse ventricular remodeling [scRNA-seq]",
+        "n_geo_sample_records": 3,
+        "donor_mapping": "unresolved",
+        "expression_validation": "not_performed",
+        "metadata_url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE216211&targ=self&form=text&view=brief"
+      }
     },
     {
       "accession": "GSE269054",
       "repository": "GEO",
       "organism": "Homo sapiens; Mus musculus",
       "modality": "snRNA-seq + spatial",
-      "roles": ["injury_borderzone", "interferon", "mi_ir"],
+      "roles": [
+        "injury_borderzone",
+        "interferon",
+        "mi_ir"
+      ],
       "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE269054",
-      "status": "metadata_locked"
+      "status": "series_metadata_verified",
+      "verification": {
+        "retrieved_utc": "2026-10-07",
+        "series_metadata_sha256": "9a625fc2ee02769f9e68942fff6fd459db3460b5874fcb8035765cd85d562bf0",
+        "series_title": "Spatially clustered type I interferon responses at injury borderzones",
+        "n_geo_sample_records": 37,
+        "donor_mapping": "unresolved",
+        "expression_validation": "not_performed",
+        "metadata_url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE269054&targ=self&form=text&view=brief"
+      }
     }
-  ]
+  ],
+  "validation_status": "candidate_sources_only; no phenotype threshold calibration"
 }

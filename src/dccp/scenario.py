@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .serialization import strict_loads
+
 import json
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -29,14 +31,14 @@ def _resolve_schema_path() -> Path:
 def _validator() -> Draft202012Validator:
     path = _resolve_schema_path()
     with path.open(encoding="utf-8") as handle:
-        schema = json.load(handle)
+        schema = strict_loads(handle.read())
     Draft202012Validator.check_schema(schema)
     return Draft202012Validator(schema)
 
 
 @dataclass(frozen=True)
 class Scenario:
-    """Immutable phenotypic challenge scenario.
+    """Phenotypic challenge scenario with copied input mappings.
 
     Only host-response / phenotypic fields are represented.
     Agent construction or operational parameters are intentionally absent.
@@ -59,6 +61,12 @@ class Scenario:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "Scenario":
+        from copy import deepcopy
+
+        errors = validate_scenario(data)
+        if errors:
+            raise ValueError("Invalid scenario: " + "; ".join(errors))
+        data = deepcopy(dict(data))
         return cls(
             scenario_id=data["scenario_id"],
             title=data["title"],
@@ -69,7 +77,9 @@ class Scenario:
             confidence=data["confidence"],
             onset=data.get("onset"),
             progression=data.get("progression"),
-            temporal_profile=dict(data["temporal_profile"]) if data.get("temporal_profile") else None,
+            temporal_profile=dict(data["temporal_profile"])
+            if data.get("temporal_profile")
+            else None,
             description=data.get("description"),
             ood_flag=bool(data.get("ood_flag", False)),
             version=str(data.get("version", "1.0.0")),
@@ -85,18 +95,27 @@ def validate_scenario(data: Mapping[str, Any]) -> list[str]:
     """Validate a scenario dict against the JSON Schema."""
     if not isinstance(data, Mapping):
         return ["<root>: scenario must be a JSON object"]
-    errors = sorted(_validator().iter_errors(data), key=lambda error: tuple(str(p) for p in error.path))
-    return [f"{'/'.join(str(p) for p in error.path) or '<root>'}: {error.message}" for error in errors]
+    try:
+        json.dumps(dict(data), allow_nan=False)
+    except (ValueError, TypeError) as exc:
+        return [f"<root>: non-portable JSON: {exc}"]
+    errors = sorted(
+        _validator().iter_errors(data), key=lambda error: tuple(str(p) for p in error.path)
+    )
+    return [
+        f"{'/'.join(str(p) for p in error.path) or '<root>'}: {error.message}" for error in errors
+    ]
 
 
 def load_scenario(path: str | Path) -> Scenario:
     """Load and validate a scenario JSON file."""
     path = Path(path)
     with path.open(encoding="utf-8") as handle:
-        data = json.load(handle)
+        data = strict_loads(handle.read())
     errors = validate_scenario(data)
     if errors:
         raise ValueError(
-            f"Scenario validation failed for {path}:\n" + "\n".join(f"  - {error}" for error in errors)
+            f"Scenario validation failed for {path}:\n"
+            + "\n".join(f"  - {error}" for error in errors)
         )
     return Scenario.from_dict(data)

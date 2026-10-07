@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from .serialization import strict_loads
+
 import itertools
-import json
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -34,7 +35,8 @@ def score_to_ordinal(score: float, thresholds: Sequence[float] = DEFAULT_THRESHO
     score = float(score)
     if not math.isfinite(score):
         raise ValueError("score must be finite")
-    score = max(0.0, min(1.0, score))
+    if not 0 <= score <= 1:
+        raise ValueError("score must lie within [0, 1]")
     for index, threshold in enumerate(values):
         if score < threshold:
             return ORDINAL_LEVELS[index]
@@ -50,17 +52,23 @@ def ordinal_to_rank(level: str) -> int:
 
 @dataclass
 class AxisScoreResult:
-    continuous: dict[str, float]
-    ordinal: dict[str, str]
-    coverage: dict[str, float]
+    continuous: dict[str, float | None]
+    ordinal: dict[str, str | None]
+    coverage: dict[str, float | None]
     thresholds: tuple[float, ...]
     notes: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
-            "continuous": {key: round(value, 4) for key, value in self.continuous.items()},
+            "continuous": {
+                key: None if value is None else round(value, 4)
+                for key, value in self.continuous.items()
+            },
             "ordinal": dict(self.ordinal),
-            "coverage": {key: round(value, 4) for key, value in self.coverage.items()},
+            "coverage": {
+                key: None if value is None else round(value, 4)
+                for key, value in self.coverage.items()
+            },
             "thresholds": list(self.thresholds),
             "notes": list(self.notes),
         }
@@ -78,20 +86,36 @@ def map_module_scores_to_axes(
     min_coverage = float(min_coverage)
     if not math.isfinite(min_coverage) or not 0.0 <= min_coverage <= 1.0:
         raise ValueError("min_coverage must be finite and within [0, 1]")
-    continuous: dict[str, float] = {}
-    ordinal: dict[str, str] = {}
+    unknown = set(scores) - set(DCCP_AXIS_MODULES)
+    if unknown:
+        raise ValueError(f"Unknown score axes: {sorted(unknown)}")
+    continuous: dict[str, float | None] = {}
+    ordinal: dict[str, str | None] = {}
     notes: list[str] = []
-    coverage = module_coverage(genes_present, DCCP_AXIS_MODULES) if genes_present is not None else {axis: 1.0 for axis in DCCP_AXIS_MODULES}
+    coverage = (
+        module_coverage(genes_present, DCCP_AXIS_MODULES)
+        if genes_present is not None
+        else {axis: None for axis in DCCP_AXIS_MODULES}
+    )
 
     for axis in DCCP_AXIS_MODULES:
-        raw = float(scores.get(axis, 0.0))
+        if axis not in scores or scores[axis] is None:
+            continuous[axis] = None
+            ordinal[axis] = None
+            notes.append(f"{axis}: score unavailable")
+            continue
+        raw = float(scores[axis])
         if not math.isfinite(raw):
             raise ValueError(f"score for {axis} must be finite")
-        continuous[axis] = max(0.0, min(1.0, raw))
+        if not 0 <= raw <= 1:
+            raise ValueError("Scores must lie within [0, 1]")
+        continuous[axis] = raw
         cov = coverage[axis]
         if genes_present is not None and cov < min_coverage:
-            ordinal[axis] = "none"
-            notes.append(f"{axis}: coverage {cov:.2f} < {min_coverage}; ordinal forced to none")
+            ordinal[axis] = None
+            notes.append(
+                f"{axis}: coverage {cov:.2f} < {min_coverage}; axis unavailable, not absence"
+            )
         else:
             ordinal[axis] = score_to_ordinal(continuous[axis], values)
 
@@ -101,13 +125,21 @@ def map_module_scores_to_axes(
 def load_host_evidence_panel(path: str | Path | None = None) -> dict[str, Any]:
     candidates: list[Path] = []
     if path:
-        candidates.append(Path(path))
+        explicit = Path(path)
+        if not explicit.is_file():
+            raise FileNotFoundError(explicit)
+        candidates.append(explicit)
     here = Path(__file__).resolve()
-    candidates.extend([here.parents[2] / "data" / "reference" / "host_evidence_panel.json", here.parent / "data" / "host_evidence_panel.json"])
+    candidates.extend(
+        [
+            here.parents[2] / "data" / "reference" / "host_evidence_panel.json",
+            here.parent / "data" / "host_evidence_panel.json",
+        ]
+    )
     for candidate in candidates:
         if candidate.is_file():
             with candidate.open(encoding="utf-8") as handle:
-                panel = json.load(handle)
+                panel = strict_loads(handle.read())
             if not isinstance(panel, dict):
                 raise ValueError(f"host evidence panel must be an object: {candidate}")
             return panel
@@ -133,9 +165,15 @@ def realism_evidence_for_axes(
         if ordinal_to_rank(level) < min_rank:
             continue
         meta = axis_ev.get(axis) or {}
-        axis_accessions = [str(accession).strip() for accession in meta.get("accessions") or [] if str(accession).strip()]
+        axis_accessions = [
+            str(accession).strip()
+            for accession in meta.get("accessions") or []
+            if str(accession).strip()
+        ]
         if axis_accessions:
-            supported.append(f"{axis} host-response programs (public multi-omics)")
+            proxy_only.append(
+                f"{axis} proxy; linked accessions are candidate evidence, not analyzed validation"
+            )
             for accession in axis_accessions:
                 if accession not in accessions:
                     accessions.append(accession)
@@ -144,8 +182,11 @@ def realism_evidence_for_axes(
     return {
         "supported_components": supported or ["host cardiac phenotypic proxy scores"],
         "proxy_only_components": proxy_only,
-        "references": [f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={accession}" for accession in accessions],
-        "proxy_notes": "Ordinal axes derive from host gene-module scores. Only axes linked to panel accessions are described as public multi-omics-supported; other axes remain proxy-only.",
+        "references": [
+            f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={accession}"
+            for accession in accessions
+        ],
+        "proxy_notes": "Ordinal axes derive from host gene-module scores. Linked accessions are metadata-verified candidate sources only. No expression analysis or phenotype calibration is established by this mapping.",
         "accessions": accessions,
     }
 
@@ -157,7 +198,7 @@ def draft_scenario_from_scores(
     title: str,
     genes_present: Sequence[str] | None = None,
     ood_flag: bool = False,
-    confidence: str = "moderate",
+    confidence: str = "exploratory",
     onset: str = "rapid",
     progression: str = "monotonic",
     recovery_profile: str = "typical",
@@ -165,7 +206,7 @@ def draft_scenario_from_scores(
 ) -> dict[str, Any]:
     """Build a JSON-Schema-valid scenario dict from host module scores."""
     mapped = map_module_scores_to_axes(scores, genes_present=genes_present)
-    axes = dict(mapped.ordinal)
+    axes = {axis: level for axis, level in mapped.ordinal.items() if level is not None}
     axes["recovery_profile"] = recovery_profile
     evidence = realism_evidence_for_axes(axes)
     return {
@@ -179,7 +220,12 @@ def draft_scenario_from_scores(
         "realism_evidence": {
             "supported_components": evidence["supported_components"],
             "references": evidence["references"],
-            "proxy_notes": evidence["proxy_notes"] + (f" Proxy-only axes: {', '.join(evidence['proxy_only_components'])}." if evidence["proxy_only_components"] else ""),
+            "proxy_notes": evidence["proxy_notes"]
+            + (
+                f" Proxy-only axes: {', '.join(evidence['proxy_only_components'])}."
+                if evidence["proxy_only_components"]
+                else ""
+            ),
         },
         "scenario_assumptions": {
             "model_derived_components": [
@@ -187,7 +233,9 @@ def draft_scenario_from_scores(
                 "module gene membership as proxy for axis activity",
             ],
             "interaction_hypotheses": [],
-            "notes": model_notes or "Continuous-to-ordinal mapping is heuristic pending dataset-specific calibration.",
+            "unavailable_axes": [axis for axis, level in mapped.ordinal.items() if level is None],
+            "notes": model_notes
+            or "Continuous-to-ordinal mapping is heuristic pending dataset-specific calibration.",
         },
         "confidence": confidence,
         "ood_flag": bool(ood_flag),

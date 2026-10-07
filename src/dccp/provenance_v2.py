@@ -1,4 +1,5 @@
 """Artifact provenance records for reproducible DCCP outputs."""
+
 from __future__ import annotations
 
 import re

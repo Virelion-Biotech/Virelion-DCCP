@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "virelion-dccp"
-version = "0.3.0"
+version = "0.4.0"
 description = "Defensive Computational Challenge Platform for human cardiac models — host multi-omics to phenotypic axes, adversarial challenge library, evaluation harness."
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }
@@ -28,9 +28,11 @@ dependencies = [
 
 [project.optional-dependencies]
 cardivex = [
-  "virelion-cardivex @ git+https://github.com/Virelion-Biotech/Virelion-CardiVex.git@main",
+  "virelion-cardivex @ git+https://github.com/Virelion-Biotech/Virelion-CardiVex.git@47b9097b4ee869e7fafe56daaa0436fa7ef556de",
 ]
-test = ["pytest>=7.4", "pytest-cov>=4.1"]
+cardisim = ["virelion-cardisim @ git+https://github.com/Virelion-Biotech/Virelion-CardiSim.git@b42e3ba1c9141f762be1d1bf3cb2df68e97baab2"]
+test = ["pytest>=8", "pytest-cov>=5", "ruff>=0.16,<0.17"]
+validation = ["numpy>=1.26,<3", "build>=1"]
 
 [project.scripts]
 dccp = "dccp.cli:main"
@@ -43,7 +45,7 @@ Repository = "https://github.com/Virelion-Biotech/Virelion-DCCP"
 where = ["src"]
 
 [tool.setuptools.package-data]
-dccp = ["py.typed", "data/*.json"]
+dccp = ["py.typed", "data/*.json", "data/scenarios/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

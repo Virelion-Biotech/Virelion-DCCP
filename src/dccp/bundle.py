@@ -1,8 +1,10 @@
 """Portable reproducibility bundles for DCCP evaluations."""
+
 from __future__ import annotations
 
+from .serialization import write_json
+
 import hashlib
-import json
 import platform
 import sys
 from datetime import datetime, timezone
@@ -57,7 +59,10 @@ def build_bundle(
     manifest = {
         "bundle_version": "1",
         "run_id": str(run_id).strip(),
-        "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "created_at": datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
         "producer": "virelion-dccp",
         "producer_version": str(producer_version).strip(),
         "base_dir": ".",
@@ -67,5 +72,5 @@ def build_bundle(
     }
     manifest["bundle_sha256"] = hashlib.sha256(canonical_json(manifest).encode("utf-8")).hexdigest()
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(json.dumps(manifest, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    write_json(manifest_path, manifest)
     return manifest

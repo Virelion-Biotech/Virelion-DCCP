@@ -8,6 +8,7 @@ from typing import Any, Mapping, Sequence
 from .cardisim_bridge import CardisimEventSpec, scenario_to_event_specs
 from .recovery import DEFAULT_RESCUE_EFFECTS, RecoveryReport, evaluate_recovery
 from .scenario import Scenario
+from .fingerprint import canonical_json
 
 
 def _require_cardisim():
@@ -22,11 +23,13 @@ def _require_cardisim():
     return CardiacSimulator, SimulationConfig, ChallengeEvent, EventSchedule
 
 
-def _validate_run_config(duration: float, dt: float, n_cells: int, seed: int) -> tuple[float, float, int, int]:
+def _validate_run_config(
+    duration: float, dt: float, n_cells: int, seed: int
+) -> tuple[float, float, int, int]:
     duration = float(duration)
     dt = float(dt)
-    n_cells = int(n_cells)
-    seed = int(seed)
+    if type(n_cells) is not int or type(seed) is not int:
+        raise ValueError("n_cells and seed must be integers")
     if not math.isfinite(duration) or duration <= 0:
         raise ValueError("duration must be finite and > 0")
     if not math.isfinite(dt) or dt <= 0:
@@ -78,6 +81,7 @@ def run_scenario_surrogate(
     config = SimulationConfig(duration=duration, dt=dt, n_cells=n_cells, seed=seed)
     result = CardiacSimulator(config).run(schedule)
     summary = result.summary()
+    canonical_json(summary)
     return {
         "scenario_id": scenario.scenario_id,
         "events": list(summary.get("events") or []),
@@ -100,15 +104,21 @@ def run_challenge_with_rescue(
     seed: int = 7,
 ) -> tuple[dict[str, Any], dict[str, Any], RecoveryReport]:
     """Run challenge and challenge+rescue simulations and score recovery."""
-    rescue_event = dict(rescue) if rescue is not None else {
-        "name": "host_resilience_intervention",
-        "onset": 2.0,
-        "duration": 12.0,
-        "magnitude": 1.0,
-        "effects": dict(DEFAULT_RESCUE_EFFECTS),
-        "recovery": 1.0,
-    }
-    challenged = run_scenario_surrogate(scenario, duration=duration, dt=dt, n_cells=n_cells, seed=seed)
+    rescue_event = (
+        dict(rescue)
+        if rescue is not None
+        else {
+            "name": "host_resilience_intervention",
+            "onset": 2.0,
+            "duration": 12.0,
+            "magnitude": 1.0,
+            "effects": dict(DEFAULT_RESCUE_EFFECTS),
+            "recovery": 1.0,
+        }
+    )
+    challenged = run_scenario_surrogate(
+        scenario, duration=duration, dt=dt, n_cells=n_cells, seed=seed
+    )
     rescued = run_scenario_surrogate(
         scenario,
         duration=duration,

@@ -1,7 +1,9 @@
 """Scenario registry: deterministic discovery, validation metadata and lookup."""
+
 from __future__ import annotations
 
-import json
+from .serialization import strict_loads, write_json
+
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -46,8 +48,8 @@ def build_registry(
         if path_resolved in excluded:
             continue
         try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            payload = strict_loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError) as exc:
             raise ValueError(f"unable to read scenario JSON {path}: {exc}") from exc
         if not isinstance(payload, dict):
             raise TypeError(f"scenario JSON must be an object: {path}")
@@ -79,7 +81,9 @@ def build_registry(
             duplicates.append(entry.scenario_id)
         seen.add(entry.scenario_id)
     if duplicates:
-        raise ValueError(f"duplicate scenario_id values in registry: {', '.join(sorted(set(duplicates)))}")
+        raise ValueError(
+            f"duplicate scenario_id values in registry: {', '.join(sorted(set(duplicates)))}"
+        )
     return entries
 
 
@@ -94,7 +98,7 @@ def write_registry(root: str | Path, output: str | Path) -> dict[str, Any]:
         "entries": [entry.as_dict() for entry in entries],
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    write_json(output, payload)
     return payload
 
 

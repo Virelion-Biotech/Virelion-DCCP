@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import json
+from .serialization import write_json
+
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,18 +22,35 @@ class LibraryEntry:
     digest: str
 
 
-def discover_scenarios(root: str | Path) -> list[Path]:
+def _resolve_library_root(root):
     root = Path(root)
+    if root.as_posix() == "scenarios" and not root.is_dir():
+        packaged = Path(__file__).resolve().parent / "data/scenarios"
+        if packaged.is_dir():
+            return packaged
+    return root
+
+
+def discover_scenarios(root: str | Path) -> list[Path]:
+    root = _resolve_library_root(root)
     if not root.is_dir():
         raise FileNotFoundError(f"scenario root does not exist: {root}")
     return sorted(path for path in root.rglob("*.json") if path.is_file())
 
 
 def load_library(root: str | Path = "scenarios") -> list[LibraryEntry]:
-    return [
-        LibraryEntry(path=path, scenario=(scenario := load_scenario(path)), digest=scenario_digest(scenario.raw))
+    root = _resolve_library_root(root)
+    entries = [
+        LibraryEntry(
+            path=path,
+            scenario=(scenario := load_scenario(path)),
+            digest=scenario_digest(scenario.raw),
+        )
         for path in discover_scenarios(root)
     ]
+    if len({entry.scenario.scenario_id for entry in entries}) != len(entries):
+        raise ValueError("Scenario library IDs must be unique")
+    return entries
 
 
 def iter_library(root: str | Path = "scenarios") -> Iterator[LibraryEntry]:
@@ -49,17 +67,22 @@ def materialize_challenge_set(
     Does not redistribute biological data — only phenotypic scenario metadata
     and assessment labels derived from the library.
     """
+    root = _resolve_library_root(root)
     entries = load_library(root)
+    if not entries:
+        raise ValueError("Cannot materialize an empty challenge set")
     cases = []
     for entry in entries:
         if entry.scenario.ood_flag and not include_ood:
             continue
         audit = audit_scenario(entry.scenario)
+        if not audit.passed:
+            raise ValueError(f"Scenario policy audit failed: {entry.scenario.scenario_id}")
         assessment = assess_scenario(entry.scenario)
         cases.append(
             {
                 "scenario_id": entry.scenario.scenario_id,
-                "path": str(entry.path),
+                "path": entry.path.resolve().relative_to(Path(root).resolve()).as_posix(),
                 "digest": entry.digest,
                 "title": entry.scenario.title,
                 "ood_flag": entry.scenario.ood_flag,
@@ -73,7 +96,7 @@ def materialize_challenge_set(
 
     payload = {
         "name": "dccp-cardiac-challenge-set",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "description": (
             "Phenotypic adversarial challenge set for defensive cardiac AI evaluation. "
             "Host-response axes only; no agent construction parameters."
@@ -103,5 +126,5 @@ def write_challenge_set(path: str | Path, root: str | Path = "scenarios") -> Pat
     path = Path(path)
     payload = materialize_challenge_set(root)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    write_json(path, payload)
     return path

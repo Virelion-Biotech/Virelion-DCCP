@@ -7,7 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from dccp.cardisim_bridge import axes_to_effects, scenario_to_cardisim_payload, scenario_to_event_specs
+from dccp.cardisim_bridge import (
+    axes_to_effects,
+    scenario_to_cardisim_payload,
+    scenario_to_event_specs,
+)
 from dccp.evaluate import assess_scenario
 from dccp.provenance import canonical_hash, scenario_digest
 from dccp.scenario import Scenario, load_scenario
@@ -29,7 +33,9 @@ def test_heldout_017_ood():
     sc = load_scenario(EXAMPLES / "SCENARIO-017.example.json")
     a = assess_scenario(sc)
     assert a.abnormal is True
-    assert a.ood_suggested is True
+    # Held-out metadata is not a prediction. This reference detector misses this case.
+    assert a.ood_suggested == (a.distance_to_nearest_ordinary >= 1.5)
+    assert a.ood_suggested is False
 
 
 def test_assessment_rejects_invalid_threshold():
@@ -56,9 +62,7 @@ def test_temporal_profile_rejects_unknown_phase_axis():
     sc = load_scenario(EXAMPLES / "SCENARIO-001.ordinary-mi.json")
     raw = dict(sc.raw)
     raw["progression"] = "multiphasic"
-    raw["temporal_profile"] = {
-        "phases": [{"name": "phase1", "dominant_axes": ["not_a_real_axis"]}]
-    }
+    raw["temporal_profile"] = {"phases": [{"name": "phase1", "dominant_axes": ["not_a_real_axis"]}]}
     profiled = Scenario.from_dict(raw)
     with pytest.raises(ValueError, match="unknown axes"):
         scenario_to_event_specs(profiled)

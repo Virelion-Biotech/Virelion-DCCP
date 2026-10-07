@@ -1,4 +1,5 @@
 """Pluggable defensive detectors behind the DefensiveAssessment contract."""
+
 from __future__ import annotations
 
 import math
@@ -12,7 +13,15 @@ from .evaluate import DefensiveAssessment, _NORMAL, _ORDINARY_TEMPLATES, assess_
 from .scenario import Scenario
 
 _LEVEL_IDX = {"none": 0, "low": 1, "moderate": 2, "substantial": 3, "high": 4, "severe": 5}
-_FEATURE_KEYS = ("inflammatory", "vascular_endothelial", "metabolic_mitochondrial", "contractile_functional", "structural_injury", "cell_death", "remodeling")
+_FEATURE_KEYS = (
+    "inflammatory",
+    "vascular_endothelial",
+    "metabolic_mitochondrial",
+    "contractile_functional",
+    "structural_injury",
+    "cell_death",
+    "remodeling",
+)
 
 
 def axes_to_vector(axes: Mapping[str, str]) -> list[float]:
@@ -31,8 +40,7 @@ def _euclid(a: Sequence[float], b: Sequence[float]) -> float:
 
 class Detector(ABC):
     @abstractmethod
-    def assess(self, scenario: Scenario) -> DefensiveAssessment:
-        ...
+    def assess(self, scenario: Scenario) -> DefensiveAssessment: ...
 
     def name(self) -> str:
         return self.__class__.__name__
@@ -69,7 +77,9 @@ class PrototypeDetector(Detector):
             if not all(math.isfinite(float(value)) for value in vector):
                 raise ValueError(f"prototype {name!r} contains non-finite values")
 
-    def fit(self, scenarios: Sequence[Scenario], labels: Sequence[str] | None = None) -> PrototypeDetector:
+    def fit(
+        self, scenarios: Sequence[Scenario], labels: Sequence[str] | None = None
+    ) -> PrototypeDetector:
         if labels is not None and len(labels) != len(scenarios):
             raise ValueError("labels must have the same length as scenarios")
         groups: dict[str, list[list[float]]] = {}
@@ -80,7 +90,13 @@ class PrototypeDetector(Detector):
             if not label:
                 raise ValueError("prototype labels must be non-empty")
             groups.setdefault(label, []).append(axes_to_vector(scenario.phenotypic_axes))
-        self.prototypes = {label: [sum(vector[i] for vector in vectors) / len(vectors) for i in range(len(_FEATURE_KEYS))] for label, vectors in groups.items()}
+        self.prototypes = {
+            label: [
+                sum(vector[i] for vector in vectors) / len(vectors)
+                for i in range(len(_FEATURE_KEYS))
+            ]
+            for label, vectors in groups.items()
+        }
         for name, template in _ORDINARY_TEMPLATES.items():
             self.prototypes.setdefault(name, axes_to_vector(template))
         self.prototypes.setdefault("normal", axes_to_vector(_NORMAL))
@@ -92,26 +108,35 @@ class PrototypeDetector(Detector):
     def assess(self, scenario: Scenario) -> DefensiveAssessment:
         if not self.prototypes:
             self.fit_default_ordinary()
+        if scenario.scenario_assumptions.get("unavailable_axes"):
+            raise ValueError("Derived phenotype has unavailable axes")
         vector = axes_to_vector(scenario.phenotypic_axes)
         normal_vector = self.prototypes.get("normal", axes_to_vector(_NORMAL))
         normalized_abnormality = _euclid(vector, normal_vector) / max(len(vector) ** 0.5, 1.0)
-        candidate_prototypes = {name: proto for name, proto in self.prototypes.items() if name != "normal"}
+        candidate_prototypes = {
+            name: proto for name, proto in self.prototypes.items() if name != "normal"
+        }
         if not candidate_prototypes:
             raise ValueError("at least one non-normal prototype is required for assessment")
-        best_name, best_distance = min(candidate_prototypes.items(), key=lambda item: _euclid(vector, item[1]))
+        best_name, best_distance = min(
+            candidate_prototypes.items(), key=lambda item: _euclid(vector, item[1])
+        )
         best_distance = _euclid(vector, candidate_prototypes[best_name])
         distance_ordinal = best_distance / max(len(vector) ** 0.5, 1.0)
-        ood = bool(scenario.ood_flag) or best_distance >= self.ood_radius
+        ood = best_distance >= self.ood_radius
         notes = [f"detector={self.name()}"]
-        if scenario.ood_flag:
-            notes.append("scenario.ood_flag is set")
+        notes.append("OOD decision excludes scenario labels")
         if best_distance >= self.ood_radius:
-            notes.append(f"distance to nearest prototype {best_name}={best_distance:.2f} >= {self.ood_radius}")
+            notes.append(
+                f"distance to nearest prototype {best_name}={best_distance:.2f} >= {self.ood_radius}"
+            )
         return DefensiveAssessment(
             scenario_id=scenario.scenario_id,
-            abnormal=normalized_abnormality > 0.25,
+            abnormal=_euclid(vector, normal_vector) > self.abnormal_radius,
             abnormality_score=float(normalized_abnormality),
-            mechanism_profile={k: v for k, v in scenario.phenotypic_axes.items() if k != "recovery_profile"},
+            mechanism_profile={
+                k: v for k, v in scenario.phenotypic_axes.items() if k != "recovery_profile"
+            },
             nearest_ordinary=best_name,
             distance_to_nearest_ordinary=float(distance_ordinal),
             ood_suggested=ood,
@@ -119,7 +144,12 @@ class PrototypeDetector(Detector):
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {"type": "PrototypeDetector", "prototypes": {k: list(v) for k, v in self.prototypes.items()}, "ood_radius": self.ood_radius, "abnormal_radius": self.abnormal_radius}
+        return {
+            "type": "PrototypeDetector",
+            "prototypes": {k: list(v) for k, v in self.prototypes.items()},
+            "ood_radius": self.ood_radius,
+            "abnormal_radius": self.abnormal_radius,
+        }
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> PrototypeDetector:
@@ -127,4 +157,8 @@ class PrototypeDetector(Detector):
         if not isinstance(raw, Mapping):
             raise TypeError("prototypes must be an object")
         prototypes = {str(key): [float(value) for value in vector] for key, vector in raw.items()}
-        return cls(prototypes=prototypes, ood_radius=float(data.get("ood_radius", 2.5)), abnormal_radius=float(data.get("abnormal_radius", 0.8)))
+        return cls(
+            prototypes=prototypes,
+            ood_radius=float(data.get("ood_radius", 2.5)),
+            abnormal_radius=float(data.get("abnormal_radius", 0.8)),
+        )

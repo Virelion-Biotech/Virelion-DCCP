@@ -1,7 +1,9 @@
 """Safe ingestion primitives with explicit normalization and provenance hooks."""
+
 from __future__ import annotations
 
-import json
+from .serialization import strict_loads
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -29,7 +31,7 @@ def load_json(path: str | Path) -> IngestedArtifact:
     if not path.is_file():
         raise FileNotFoundError(path)
     with path.open(encoding="utf-8") as handle:
-        payload = json.load(handle)
+        payload = strict_loads(handle.read())
     return IngestedArtifact(
         source=path.as_posix(),
         source_sha256=file_hash(path),

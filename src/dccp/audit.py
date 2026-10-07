@@ -63,7 +63,9 @@ def audit_scenario(data: Mapping[str, Any] | Scenario) -> AuditResult:
     evidence = raw.get("realism_evidence") or {}
     supported = evidence.get("supported_components") or []
     if not supported:
-        policy_errors.append("realism_evidence.supported_components must list at least one component")
+        policy_errors.append(
+            "realism_evidence.supported_components must list at least one component"
+        )
 
     assumptions = raw.get("scenario_assumptions") or {}
     model_derived = assumptions.get("model_derived_components") or []
@@ -76,9 +78,7 @@ def audit_scenario(data: Mapping[str, Any] | Scenario) -> AuditResult:
         policy_errors.append("current DCCP scope requires tissue == 'cardiac'")
 
     if raw.get("ood_flag") and raw.get("confidence") == "high":
-        policy_warnings.append(
-            "ood_flag=true with confidence=high is unusual; confirm intentional"
-        )
+        policy_warnings.append("ood_flag=true with confidence=high is unusual; confirm intentional")
 
     progression = raw.get("progression")
     if progression == "multiphasic" and not raw.get("temporal_profile"):
@@ -88,8 +88,14 @@ def audit_scenario(data: Mapping[str, Any] | Scenario) -> AuditResult:
 
     # Soft check: no keys that look like agent/operational parameters
     forbidden_substrings = (
-        "sequence", "genome", "plasmid", "inoculat", "virulence_factor",
-        "dose_response", "propagation_protocol", "weapon",
+        "sequence",
+        "genome",
+        "plasmid",
+        "inoculat",
+        "virulence_factor",
+        "dose_response",
+        "propagation_protocol",
+        "weapon",
     )
     blob = str(raw).lower()
     for s in forbidden_substrings:

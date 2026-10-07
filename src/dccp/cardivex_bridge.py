@@ -1,10 +1,24 @@
 """Exact-semantics bridge from DCCP ordinal axes to CardiVex distance primitives."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from math import sqrt
+from math import sqrt, isfinite
 
-from cardivex.defense import abnormality_score, nearest_state_distance
+
+def abnormality_score(left, right):
+    try:
+        from cardivex.defense import abnormality_score as external
+    except ModuleNotFoundError as exc:
+        if exc.name != "cardivex":
+            raise
+        return sqrt(sum((left[key] - right[key]) ** 2 for key in left) / len(left))
+    return external(left, right)
+
+
+def nearest_state_distance(query, references):
+    return min(abnormality_score(query, ref) for ref in references)
+
 
 _LEVEL_IDX = {"none": 0, "low": 1, "moderate": 2, "substantial": 3, "high": 4, "severe": 5}
 _LEVEL_MAX = 5
@@ -59,6 +73,10 @@ def ordinal_vector_euclidean(a: Sequence[float], b: Sequence[float]) -> float:
         raise ValueError("prototype vectors must have equal dimensions")
     if not a:
         return 0.0
+    if any(
+        isinstance(x, bool) or not isfinite(float(x)) or not 0 <= float(x) <= 5 for x in (*a, *b)
+    ):
+        raise ValueError("Ordinal vectors must be finite and within [0, 5]")
     left = {str(i): float(value) / _LEVEL_MAX for i, value in enumerate(a)}
     right = {str(i): float(value) / _LEVEL_MAX for i, value in enumerate(b)}
     score = abnormality_score(left, right)

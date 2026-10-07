@@ -36,7 +36,7 @@ CardiBench: sample/subject leakage policy on locked splits
 
 ## Evidence panel
 
-`data/reference/host_evidence_panel.json` lists public accessions (GSE185289, GSE240848, GSE135310, GSE153480, GSE216211, GSE269054) and which DCCP axes they can support. Status is **metadata_locked** — matrices are fetched/analyzed outside the repo.
+`data/reference/host_evidence_panel.json` lists public accessions (GSE185289, GSE240848, GSE135310, GSE153480, GSE216211, GSE269054) and which DCCP axes they can support. Status is **series_metadata_verified**: source response hashes and series/sample-record metadata are recorded. Subject mapping and empirical phenotype validation remain unresolved. A small GSE240848 technical count subset is independently checked; it is not a disease benchmark.
 
 ## Feature engineering
 
@@ -59,3 +59,14 @@ dccp accession-digest GSE135310
 
 - **Accession digests** are metadata hashes for realism_evidence and challenge sets.
 - **Sample-level** train/test separation (donor, study, species, timepoint) is enforced in **CardiBench** when expression-level benchmarks are locked — DCCP only records the policy note.
+
+## 0.4.0 interpretation
+
+Module log means describe observed marker abundance, not tissue dysfunction.
+Relative scores characterize within-profile heterogeneity and are unavailable for
+missing/invariant modules. Gene coverage is reported; missing gene metadata is
+unknown, not 100% coverage. Cross-sample comparisons need scaling fitted only on a
+training reference, with cell-type and species controls. Uncalibrated summaries
+withhold CardiSim states, including viability. Missing axes in mapped drafts remain
+unavailable and prevent detector assessment. Linked accessions are candidate
+sources, not automatic empirical support.

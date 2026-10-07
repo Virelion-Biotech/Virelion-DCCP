@@ -61,3 +61,37 @@ DCCP does not provide protocols for constructing, optimizing, or reproducing bio
 ## License
 
 GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See `LICENSE`.
+
+## Verified CPU workflows (0.4.0)
+
+```bash
+python -m pip install -e '.[test,validation]'
+python -m pytest -q --cov=dccp --cov-branch
+python scripts/validate_cpu.py
+```
+
+The committed GSE240848 technical subset runs offline. To re-extract it from exact
+public source files, run `python scripts/fetch_host_subset.py`; this downloads about
+236 MB and verifies pinned SHA-256. No GPU is required. It checks input arithmetic,
+not disease classification. See [the audit](docs/CPU_AUDIT.md) and
+[the report](validation/cpu/results.json).
+
+Optional actual stack integrations are pinned:
+
+```bash
+python -m pip install -e '.[test,cardivex,cardisim]'
+pytest -q tests/test_stack_integration.py
+dccp surrogate scenarios/examples/SCENARIO-001.ordinary-mi.json --rescue --cells 8 --duration 8
+```
+
+OOD predictions now exclude `ood_flag`. On eight design scenarios, the heuristic
+matches 3/8 OOD flags and the prototype 7/8. Failures remain visible; neither result
+establishes empirical performance. Missing omics scores/coverage are `null`, not
+healthy phenotypes. Incomplete omics-derived drafts require more data before
+assessment. Uncalibrated host summaries expose raw marker means and coverage,
+withhold simulator states, and do not estimate viability or tissue dysfunction.
+
+Strict JSON, atomic writes, portable challenge hashes, manifest verification and
+content re-auditing protect artifact integrity. The installed wheel includes the
+example library, so `dccp list` works outside the repository. Full API compatibility
+changes and scientific limits are documented in the audit.

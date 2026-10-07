@@ -11,7 +11,16 @@ from collections.abc import Mapping, Sequence
 DCCP_AXIS_MODULES: dict[str, tuple[str, ...]] = {
     "inflammatory": ("IL1B", "TNF", "CCL2", "S100A8", "S100A9", "NFKBIA", "CXCL2"),
     "vascular_endothelial": ("KDR", "PECAM1", "EMCN", "ENG", "ESAM", "VWF", "ANGPT1"),
-    "metabolic_mitochondrial": ("PPARGC1A", "CPT1B", "ACADM", "HADHA", "TFAM", "NDUFA1", "COX5A", "ATP5F1E"),
+    "metabolic_mitochondrial": (
+        "PPARGC1A",
+        "CPT1B",
+        "ACADM",
+        "HADHA",
+        "TFAM",
+        "NDUFA1",
+        "COX5A",
+        "ATP5F1E",
+    ),
     "contractile_functional": ("TNNT2", "TNNI3", "ACTN2", "MYH7", "MYL2", "ACTC1"),
     "structural_injury": ("COL1A1", "COL3A1", "POSTN", "DCN", "LUM", "TAGLN"),
     "cell_death": ("BAX", "BCL2", "CASP3", "XIAP", "MCL1"),
@@ -46,7 +55,9 @@ def module_coverage(
     present = {str(gene).strip().upper() for gene in genes_present if str(gene).strip()}
     selected = modules or DCCP_AXIS_MODULES
     return {
-        name: sum(1 for gene in markers if str(gene).strip().upper() in present) / len(markers) if markers else 0.0
+        name: sum(1 for gene in markers if str(gene).strip().upper() in present) / len(markers)
+        if markers
+        else 0.0
         for name, markers in selected.items()
     }
 

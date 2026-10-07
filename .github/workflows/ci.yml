@@ -1,55 +1,64 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
+  workflow_dispatch:
 permissions:
   contents: read
-
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-
-      - name: Install package and test tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[test,cardivex]"
-          pip install ruff==0.16.7
-
-      - name: Compile
-        run: python -m compileall -q src tests
-
-      - name: Ruff
-        run: ruff check src tests
-
-      - name: Pytest + coverage
-        run: pytest -q --cov=dccp --cov-branch --cov-report=term-missing
-
-      - name: CLI smoke tests
-        run: |
-          python -c "from dccp.cli import main; raise SystemExit(main(['--version']))"
-          python -c "from dccp.cli import main; raise SystemExit(main(['validate','scenarios/examples/SCENARIO-001.ordinary-mi.json']))"
-          python -c "from dccp.cli import main; raise SystemExit(main(['audit-all','scenarios/examples']))"
-          python -c "from dccp.cli import main; raise SystemExit(main(['registry','--root','scenarios/examples','--output','/tmp/dccp-registry.json']))"
-          python -c "from dccp.cli import main; raise SystemExit(main(['release-gate','/tmp/dccp-registry.json','--base','.']))"
-          python -c "from dccp.cli import main; raise SystemExit(main(['materialize','--root','scenarios/examples','--output','/tmp/dccp-challenge-set.json']))"
-          python -c "from dccp.cli import main; raise SystemExit(main(['map-scores','--scores','inflammatory=0.8,contractile_functional=0.4','--draft-id','SCENARIO-902','-o','/tmp/draft.json']))"
-          python -c "from dccp.cli import main; raise SystemExit(main(['validate','/tmp/draft.json']))"
-          python -c "from dccp.cli import main; raise SystemExit(main(['bundle','--output-dir','/tmp/dccp-bundle','--run-id','ci','--input-files','scenarios/examples/SCENARIO-001.ordinary-mi.json']))"
-
-      - name: Audit all repository scenarios
-        run: python -c "from dccp.cli import main; raise SystemExit(main(['audit-all','scenarios']))"
+      - run: python -m pip install -e '.[test,validation]'
+      - run: ruff check src tests scripts
+      - run: ruff format --check src tests scripts
+      - run: pytest -q --cov=dccp --cov-branch --cov-fail-under=90 --cov-report=term-missing
+      - run: dccp audit-all scenarios/examples
+      - run: dccp registry --root scenarios/examples --output /tmp/registry.json
+      - run: dccp release-gate /tmp/registry.json --base .
+      - run: dccp materialize --root scenarios/examples --output /tmp/challenges.json
+      - run: dccp map-scores --scores inflammatory=0.8,contractile_functional=0.4 --draft-id SCENARIO-902 -o /tmp/draft.json
+      - run: dccp validate /tmp/draft.json
+      - run: dccp bundle --output-dir /tmp/dccp-bundle --run-id ci --input-files scenarios/examples/SCENARIO-001.ordinary-mi.json
+      - run: dccp integrity /tmp/dccp-bundle/manifest.json --base .
+      - run: python scripts/validate_cpu.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cpu-evidence-${{ matrix.python-version }}
+          path: validation/cpu/results.json
+  stack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[test,cardivex,cardisim]'
+      - run: pytest -q tests/test_stack_integration.py
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build
+      - run: python -m build
+      - run: python -m venv /tmp/dccp-wheel
+      - run: /tmp/dccp-wheel/bin/pip install dist/*.whl
+      - run: cd /tmp && /tmp/dccp-wheel/bin/dccp --version
+      - run: cd /tmp && /tmp/dccp-wheel/bin/dccp list
+      - run: cd /tmp && /tmp/dccp-wheel/bin/dccp host-panel --json
+      - run: cd /tmp && /tmp/dccp-wheel/bin/dccp materialize --output /tmp/wheel-challenges.json
+      - run: cd /tmp && /tmp/dccp-wheel/bin/dccp recovery-demo

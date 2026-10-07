@@ -1,4 +1,5 @@
 """Evaluation protocol primitives: scenario-level results and aggregate metrics."""
+
 from __future__ import annotations
 
 import math
@@ -19,6 +20,16 @@ class CaseResult:
     def __post_init__(self) -> None:
         if not str(self.scenario_id).strip():
             raise ValueError("scenario_id must be non-empty")
+        if any(
+            type(value) is not bool
+            for value in (
+                self.expected_positive,
+                self.predicted_positive,
+                self.ood_expected,
+                self.ood_predicted,
+            )
+        ):
+            raise ValueError("Case labels must be booleans")
         if self.score is not None and not math.isfinite(float(self.score)):
             raise ValueError("score must be finite when provided")
 
@@ -36,6 +47,8 @@ def _rate(n: int, d: int) -> float:
 
 def summarize_cases(cases: Iterable[CaseResult]) -> dict[str, Any]:
     rows = list(cases)
+    if len({row.scenario_id for row in rows}) != len(rows):
+        raise ValueError("Case scenario IDs must be unique")
     tp = sum(result.expected_positive and result.predicted_positive for result in rows)
     tn = sum((not result.expected_positive) and (not result.predicted_positive) for result in rows)
     fp = sum((not result.expected_positive) and result.predicted_positive for result in rows)
@@ -47,6 +60,16 @@ def summarize_cases(cases: Iterable[CaseResult]) -> dict[str, Any]:
     f1 = _rate(2 * precision * recall, precision + recall)
     return {
         "n": len(rows),
+        "undefined_metrics": [
+            name
+            for name, denominator in (
+                ("accuracy", len(rows)),
+                ("precision", tp + fp),
+                ("recall", tp + fn),
+                ("ood_accuracy", len(rows)),
+            )
+            if denominator == 0
+        ],
         "confusion": {"tp": tp, "tn": tn, "fp": fp, "fn": fn},
         "accuracy": accuracy,
         "precision": precision,
@@ -59,6 +82,8 @@ def summarize_cases(cases: Iterable[CaseResult]) -> dict[str, Any]:
 
 def wilson_interval(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
     """Wilson score interval for a binomial proportion."""
+    if type(total) is not int or type(successes) is not int:
+        raise ValueError("Wilson counts must be integers")
     if total < 0:
         raise ValueError("total must be non-negative")
     if successes < 0 or successes > total:
@@ -67,7 +92,7 @@ def wilson_interval(successes: int, total: int, z: float = 1.96) -> tuple[float,
     if not math.isfinite(z) or z < 0:
         raise ValueError("z must be finite and non-negative")
     if total == 0:
-        return (0.0, 0.0)
+        return (0.0, 1.0)
     p = successes / total
     z2 = z * z
     denom = 1 + z2 / total

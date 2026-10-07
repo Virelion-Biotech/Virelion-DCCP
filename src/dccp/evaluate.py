@@ -81,6 +81,10 @@ def assess_scenario(scenario: Scenario, *, ood_threshold: float = 1.5) -> Defens
     ood_threshold = float(ood_threshold)
     if not math.isfinite(ood_threshold) or ood_threshold < 0:
         raise ValueError("ood_threshold must be finite and non-negative")
+    if scenario.scenario_assumptions.get("unavailable_axes"):
+        raise ValueError(
+            "Derived phenotype has unavailable axes; detector assessment requires complete inputs"
+        )
     axes = dict(scenario.phenotypic_axes)
     abn = _axis_distance(axes, _NORMAL)
 
@@ -92,11 +96,12 @@ def assess_scenario(scenario: Scenario, *, ood_threshold: float = 1.5) -> Defens
             break
 
     notes: list[str] = []
-    ood = bool(scenario.ood_flag) or best_dist >= ood_threshold
-    if scenario.ood_flag:
-        notes.append("scenario.ood_flag is set (held-out / novel by design)")
+    ood = best_dist >= ood_threshold
+    notes.append("OOD decision uses phenotype distance only; scenario labels are excluded")
     if best_dist >= ood_threshold:
-        notes.append(f"distance to nearest ordinary template ({best_name}) = {best_dist:.2f} >= {ood_threshold}")
+        notes.append(
+            f"distance to nearest ordinary template ({best_name}) = {best_dist:.2f} >= {ood_threshold}"
+        )
 
     abnormal = abn > 0.25
     if not abnormal:

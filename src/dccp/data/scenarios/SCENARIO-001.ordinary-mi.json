@@ -1,0 +1,53 @@
+{
+  "scenario_id": "SCENARIO-001",
+  "title": "Ordinary myocardial-injury-like phenotype",
+  "description": "Reference ordinary pathology profile approximating stereotypical post-injury cardiac response for the normal → ordinary disease → atypical → novel ladder.",
+  "tissue": "cardiac",
+  "onset": "rapid",
+  "progression": "biphasic",
+  "phenotypic_axes": {
+    "inflammatory": "high",
+    "vascular_endothelial": "moderate",
+    "metabolic_mitochondrial": "substantial",
+    "contractile_functional": "high",
+    "structural_injury": "substantial",
+    "cell_death": "substantial",
+    "remodeling": "moderate",
+    "recovery_profile": "typical"
+  },
+  "temporal_profile": {
+    "phases": [
+      {
+        "name": "acute injury",
+        "relative_time": "hours-to-days",
+        "dominant_axes": ["inflammatory", "contractile_functional", "cell_death"]
+      },
+      {
+        "name": "remodeling",
+        "relative_time": "days-to-weeks",
+        "dominant_axes": ["remodeling", "structural_injury"]
+      }
+    ]
+  },
+  "realism_evidence": {
+    "supported_components": [
+      "inflammatory response after myocardial injury",
+      "contractile impairment",
+      "fibrotic remodeling",
+      "mitochondrial / metabolic disturbance"
+    ],
+    "references": [],
+    "proxy_notes": "Axes aligned with well-described host responses in public MI / injury transcriptomic and functional studies; no agent parameters."
+  },
+  "scenario_assumptions": {
+    "model_derived_components": [
+      "exact ordinal severity combination",
+      "biphasic timing discretization"
+    ],
+    "interaction_hypotheses": [],
+    "notes": "Ordinary-pathology anchor for defensive evaluation benchmarks."
+  },
+  "confidence": "moderate",
+  "ood_flag": false,
+  "version": "1.0.0"
+}

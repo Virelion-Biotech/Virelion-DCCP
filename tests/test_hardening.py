@@ -1,4 +1,5 @@
 """Integration and edge-case tests for hardened DCCP contracts."""
+
 from __future__ import annotations
 
 import hashlib
@@ -19,14 +20,26 @@ from dccp.scenario import Scenario, validate_scenario
 
 
 def _scenario(**overrides) -> Scenario:
-    data = {"scenario_id": "SCENARIO-900", "title": "test", "tissue": "cardiac", "phenotypic_axes": {"inflammatory": "high", "contractile_functional": "moderate"}, "realism_evidence": {"supported_components": ["test"]}, "scenario_assumptions": {"model_derived_components": ["test"]}, "confidence": "moderate"}
+    data = {
+        "scenario_id": "SCENARIO-900",
+        "title": "test",
+        "tissue": "cardiac",
+        "phenotypic_axes": {"inflammatory": "high", "contractile_functional": "moderate"},
+        "realism_evidence": {"supported_components": ["test"]},
+        "scenario_assumptions": {"model_derived_components": ["test"]},
+        "confidence": "moderate",
+    }
     data.update(overrides)
     assert validate_scenario(data) == []
     return Scenario.from_dict(data)
 
 
 def test_draft_scenario_is_schema_valid():
-    draft = draft_scenario_from_scores({"inflammatory": 0.8, "contractile_functional": 0.4}, scenario_id="SCENARIO-901", title="draft")
+    draft = draft_scenario_from_scores(
+        {"inflammatory": 0.8, "contractile_functional": 0.4},
+        scenario_id="SCENARIO-901",
+        title="draft",
+    )
     assert validate_scenario(draft) == []
     assert not any(key.startswith("_") for key in draft)
 
@@ -42,7 +55,10 @@ def test_custom_thresholds_and_scores_are_validated():
 
 
 def test_temporal_residual_axes_are_half_weighted():
-    scenario = _scenario(phenotypic_axes={"inflammatory": "high", "contractile_functional": "high"}, temporal_profile={"phases": [{"name": "early", "dominant_axes": ["inflammatory"]}]})
+    scenario = _scenario(
+        phenotypic_axes={"inflammatory": "high", "contractile_functional": "high"},
+        temporal_profile={"phases": [{"name": "early", "dominant_axes": ["inflammatory"]}]},
+    )
     event = scenario_to_event_specs(scenario)[0]
     assert event.effects["inflammation"] > 0
     assert event.effects["contractility"] < 0
@@ -64,7 +80,9 @@ def test_integrity_rejects_unsafe_path(tmp_path):
     target = tmp_path / "data.txt"
     target.write_text("ok", encoding="utf-8")
     digest = hashlib.sha256(b"ok").hexdigest()
-    issues = verify_file_hashes({"files": [{"path": "../data.txt", "sha256": digest}]}, tmp_path / "nested")
+    issues = verify_file_hashes(
+        {"files": [{"path": "../data.txt", "sha256": digest}]}, tmp_path / "nested"
+    )
     assert any(issue.kind == "unsafe_path" for issue in issues)
 
 
@@ -99,6 +117,12 @@ def test_event_spec_rejects_non_finite_and_zero_duration():
 
 
 def test_recovery_does_not_treat_missing_dimensions_as_zero():
-    report = evaluate_recovery(scenario_id="S", intervention_name="I", baseline={"viability": 1.0, "contractility": 1.0}, challenged={"viability": 0.5}, rescued={"viability": 0.8})
+    report = evaluate_recovery(
+        scenario_id="S",
+        intervention_name="I",
+        baseline={"viability": 1.0, "contractility": 1.0},
+        challenged={"viability": 0.5},
+        rescued={"viability": 0.8},
+    )
     assert report.dimension_recovery == {"viability": pytest.approx(0.6)}
     assert any("contractility" in note for note in report.notes)

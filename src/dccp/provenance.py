@@ -47,7 +47,10 @@ def run_provenance(
         "scenario_hash": scenario_hash,
         "tool": tool,
         "tool_version": tool_version,
-        "timestamp_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "timestamp_utc": datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
     }
     if extra:
         record["extra"] = dict(extra)

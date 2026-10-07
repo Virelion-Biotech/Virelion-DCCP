@@ -1,4 +1,5 @@
 """Tests for reproducibility, registry, bundle, and evaluation infrastructure."""
+
 from __future__ import annotations
 
 import json
@@ -70,12 +71,19 @@ def test_bundle_records_relative_paths_and_deduplicates(tmp_path: Path):
         input_files=[source, source],
         base_dir=tmp_path,
     )
-    assert manifest["inputs"] == [{
-        "path": "input.json",
-        "sha256": manifest["inputs"][0]["sha256"],
-        "size": source.stat().st_size,
-    }]
-    assert json.loads((tmp_path / "bundle" / "manifest.json").read_text(encoding="utf-8"))["bundle_sha256"] == manifest["bundle_sha256"]
+    assert manifest["inputs"] == [
+        {
+            "path": "input.json",
+            "sha256": manifest["inputs"][0]["sha256"],
+            "size": source.stat().st_size,
+        }
+    ]
+    assert (
+        json.loads((tmp_path / "bundle" / "manifest.json").read_text(encoding="utf-8"))[
+            "bundle_sha256"
+        ]
+        == manifest["bundle_sha256"]
+    )
 
 
 def test_bundle_rejects_inputs_outside_base_dir(tmp_path: Path):
@@ -83,6 +91,8 @@ def test_bundle_rejects_inputs_outside_base_dir(tmp_path: Path):
     outside.write_text("{}", encoding="utf-8")
     try:
         with pytest.raises(ValueError):
-            build_bundle(tmp_path / "bundle", run_id="RUN-2", input_files=[outside], base_dir=tmp_path)
+            build_bundle(
+                tmp_path / "bundle", run_id="RUN-2", input_files=[outside], base_dir=tmp_path
+            )
     finally:
         outside.unlink(missing_ok=True)

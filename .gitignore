@@ -33,3 +33,9 @@ htmlcov/
 # Local secrets / notebooks
 .env
 *.ipynb_checkpoints/
+
+# Reproducible downloads and generated runtime outputs
+.data-cache/
+runs/
+artifacts/
+.coverage.*

@@ -1,0 +1,372 @@
+{
+  "checks": {
+    "analytic_recovery": {
+      "expected": 0.5,
+      "observed": 0.49999999999999994,
+      "passed": true
+    },
+    "library_scale_and_gene_order_invariance": {
+      "maximum_scaled_error": 0.0,
+      "passed": true
+    },
+    "marker_module_means": {
+      "maximum_error": 2.220446049250313e-16,
+      "module_count": 11,
+      "passed": true
+    },
+    "ood_label_blindness": {
+      "paired_cases": 16,
+      "passed": true
+    },
+    "portable_challenge_hash": {
+      "passed": true,
+      "set_hash": "1e35b2c44b224b4d657ddca9b5b96b44742fee43b35ec889393ea6fd2be0d8f2"
+    },
+    "real_input_normalization": {
+      "columns": 16,
+      "maximum_error": 4.440892098500626e-16,
+      "normalization_target": 10000,
+      "passed": true
+    },
+    "wilson_known_endpoint": {
+      "interval": [
+        0.0,
+        0.2775401687666165
+      ],
+      "passed": true
+    }
+  },
+  "detector_baselines": {
+    "heuristic": {
+      "accuracy": 1.0,
+      "cases": [
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": false,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-001",
+          "score": 3.0
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": false,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-002",
+          "score": 2.285714285714285
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": false,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-010",
+          "score": 2.4285714285714284
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-017",
+          "score": 2.4285714285714284
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-018",
+          "score": 2.5714285714285707
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-019",
+          "score": 2.8571428571428568
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-020",
+          "score": 2.285714285714285
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-021",
+          "score": 3.0
+        }
+      ],
+      "confusion": {
+        "fn": 0,
+        "fp": 0,
+        "tn": 0,
+        "tp": 8
+      },
+      "f1": 1.0,
+      "label_scope": "Scenario design flags only; not independent empirical OOD ground truth",
+      "n": 8,
+      "ood_accuracy": 0.375,
+      "ood_accuracy_wilson_95": [
+        0.13684175946152105,
+        0.6942621454161981
+      ],
+      "ood_confusion": {
+        "fn": 5,
+        "fp": 0,
+        "tn": 3,
+        "tp": 0
+      },
+      "precision": 1.0,
+      "recall": 1.0,
+      "undefined_metrics": []
+    },
+    "prototype": {
+      "accuracy": 1.0,
+      "cases": [
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": false,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-001",
+          "score": 3.093772546815388
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": false,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-002",
+          "score": 2.5071326821120348
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": false,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-010",
+          "score": 2.6992062325273123
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": false,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-017",
+          "score": 2.591193878173865
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": true,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-018",
+          "score": 3.2071349029490923
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": true,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-019",
+          "score": 3.116774889895919
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": true,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-020",
+          "score": 2.5634797778466236
+        },
+        {
+          "correct": true,
+          "expected_positive": true,
+          "ood_expected": true,
+          "ood_predicted": true,
+          "predicted_positive": true,
+          "scenario_id": "SCENARIO-021",
+          "score": 3.2732683535398857
+        }
+      ],
+      "confusion": {
+        "fn": 0,
+        "fp": 0,
+        "tn": 0,
+        "tp": 8
+      },
+      "f1": 1.0,
+      "label_scope": "Scenario design flags only; not independent empirical OOD ground truth",
+      "n": 8,
+      "ood_accuracy": 0.875,
+      "ood_accuracy_wilson_95": [
+        0.5291051942301386,
+        0.9775830911367038
+      ],
+      "ood_confusion": {
+        "fn": 1,
+        "fp": 0,
+        "tn": 3,
+        "tp": 4
+      },
+      "precision": 1.0,
+      "recall": 1.0,
+      "undefined_metrics": []
+    }
+  },
+  "empirical_validation": {
+    "blockers": [
+      "subject/condition mapping unresolved for test subset",
+      "module directions and ordinal thresholds uncalibrated",
+      "no independent clinical OOD labels",
+      "no held-out biological recovery measurements"
+    ],
+    "status": "not_validated"
+  },
+  "environment": {
+    "numpy": "2.3.5",
+    "python": "3.12.14"
+  },
+  "host_features": {
+    "axis_scores": {
+      "cell_death": 0.20509261196459042,
+      "contractile_functional": 0.22686386665564104,
+      "inflammatory": 0.17669315545600733,
+      "metabolic_mitochondrial": 0.26480051187580916,
+      "remodeling": 0.13247025209804508,
+      "structural_injury": 0.23068160931718434,
+      "vascular_endothelial": 0.35363921282299093
+    },
+    "cardisim_proxy": {},
+    "coverage": {
+      "calcium_maturity": 1.0,
+      "cell_death": 0.8,
+      "contractile_functional": 1.0,
+      "electrophysiology_maturity": 1.0,
+      "inflammatory": 1.0,
+      "metabolic_maturity": 1.0,
+      "metabolic_mitochondrial": 1.0,
+      "remodeling": 1.0,
+      "sarcomere_maturity": 1.0,
+      "structural_injury": 1.0,
+      "vascular_endothelial": 0.8571428571428571
+    },
+    "maturity_scores": {
+      "calcium_maturity": 0.42547027125765546,
+      "electrophysiology_maturity": 0.16252357347284346,
+      "metabolic_maturity": 0.18987618061596714,
+      "sarcomere_maturity": 0.22686386665564104
+    },
+    "module_log_means": {
+      "calcium_maturity": 1.0751159455790227,
+      "cell_death": 0.15469312688363718,
+      "contractile_functional": 0.4080625408174979,
+      "electrophysiology_maturity": 0.14778203675101703,
+      "inflammatory": 0.12026632054902138,
+      "metabolic_maturity": 0.16160237201045377,
+      "metabolic_mitochondrial": 0.16068516101676447,
+      "remodeling": 0.08634569245809286,
+      "sarcomere_maturity": 0.48967504898099745,
+      "structural_injury": 0.45247271008048423,
+      "vascular_endothelial": 0.5894142405009154
+    },
+    "n_cells": 16,
+    "notes": [
+      "Scores describe within-profile heterogeneity; reference-fit scaling is needed for cross-sample comparisons.",
+      "Absent modules and invariant expression have unavailable relative scores, not zero burden.",
+      "Mixed marker directions cannot estimate dysfunction, cell death or simulator state without calibration."
+    ],
+    "scientific_status": "uncalibrated host-marker summaries; not dysfunction or viability estimates"
+  },
+  "input_source_files": [
+    {
+      "bytes": 289781,
+      "sha256": "3c101c5ce7eb5db2423f6fcf2727d4de5ffa1fc527bb7022b70299c28e58b748",
+      "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE240nnn/GSE240848/suppl/GSE240848_features.tsv.gz"
+    },
+    {
+      "bytes": 242732,
+      "sha256": "9ac55cdd427595695ecca1ee4040f648e453ed1a4b49e12aed1bf41ddc3b6ff9",
+      "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE240nnn/GSE240848/suppl/GSE240848_barcodes.tsv.gz"
+    },
+    {
+      "bytes": 235355807,
+      "sha256": "58a0239397567f06b227ff015df257a358524bba5e51f1a51b5fb06d1bf2dd6d",
+      "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE240nnn/GSE240848/suppl/GSE240848_matrix.mtx.gz"
+    }
+  ],
+  "passed": true,
+  "scope": "Computational verification on real public counts and synthetic fixtures; no calibrated biological validation",
+  "source_sha256": {
+    "scenarios/examples/SCENARIO-001.ordinary-mi.json": "8f51b5b362a22debfbd10b1dfc5b5c5eb010c02e679d9afd3887a2fe40a88863",
+    "scenarios/examples/SCENARIO-002.hypoxia-like.json": "9edc617ffbf1b1e907b57c77750f3e4e072652c9f0108589d8abc3de928609cf",
+    "scenarios/examples/SCENARIO-010.atypical-combo.json": "b3ff897abb1c3b055b2a4a9f35e7b76d48d8f4de0abd2cbe086ed87f13e7eefc",
+    "scenarios/examples/SCENARIO-017.example.json": "7aaa709e4271c8bbc1217782d5d7fad4b96cde71c53ec3c9ae576ad3289338bf",
+    "scenarios/examples/SCENARIO-018.heldout-metabolic-vascular.json": "91ebdec1c0c654b5fccde5017b1314ad4ffb70ed8e1acc7effa850e09b2cbd21",
+    "scenarios/examples/SCENARIO-019.heldout-delayed-structure.json": "647061d47b3564d5bd2d9783bdacbabde3403698a5d7c15371bac91d4bc7f723",
+    "scenarios/examples/SCENARIO-020.host-ood-interferon-border.json": "d0c66b2c59a9abfb250224ee0e3777aff249225e453fb136d150bb5a7067b7e1",
+    "scenarios/examples/SCENARIO-021.host-ood-maturity-discordant.json": "4777b88a60eb0370509e9bfa8de20f6416ce178b7731dbf9eb17e220bb4dad42",
+    "scripts/validate_cpu.py": "994bb1eecbac216a91a0bd0cdee74880c2a5816b8432d9d6f1f880c5c4a029b6",
+    "src/dccp/__init__.py": "ed2f1fc3111ea65e34f2f3257384ee369fa41b0f8f6571e34826d5fac0669809",
+    "src/dccp/accession_provenance.py": "5a66faa9736e76520d974e51a0db1873936b7ab93f12cb3d4399b42a96183018",
+    "src/dccp/audit.py": "5b1bc2de6b98cc3fad8d7f9176861c53829228bbefc83c4493f0b235b1746a81",
+    "src/dccp/bundle.py": "50c589603680d2edde0cbf815f329bdb154b7e82c4fe6c251df9742727bde89b",
+    "src/dccp/cardisim_bridge.py": "16894f7faac215d1773952dd446baa8426efe5fc2a066aebd81738b67ea825a8",
+    "src/dccp/cardivex_bridge.py": "9efc4d921fd26ca9743e0c839d089438f0b6d3387c62de6d4d7239bcc1e66e60",
+    "src/dccp/cli.py": "97770f1bb9dc8dd7d3ad0761b8d499dd5674a553af8171d8336c0c69bd283a70",
+    "src/dccp/data/host_evidence_panel.json": "1f51c884b74b47942c242a76e0b2e9802c34dbcffea4060055165944a06ec0a8",
+    "src/dccp/data/scenario.schema.json": "90e658b0e00c70af1e4c50e365c2ce209f8106e433b14c009abec86f31b4384c",
+    "src/dccp/data/scenarios/SCENARIO-001.ordinary-mi.json": "8f51b5b362a22debfbd10b1dfc5b5c5eb010c02e679d9afd3887a2fe40a88863",
+    "src/dccp/data/scenarios/SCENARIO-002.hypoxia-like.json": "9edc617ffbf1b1e907b57c77750f3e4e072652c9f0108589d8abc3de928609cf",
+    "src/dccp/data/scenarios/SCENARIO-010.atypical-combo.json": "b3ff897abb1c3b055b2a4a9f35e7b76d48d8f4de0abd2cbe086ed87f13e7eefc",
+    "src/dccp/data/scenarios/SCENARIO-017.example.json": "7aaa709e4271c8bbc1217782d5d7fad4b96cde71c53ec3c9ae576ad3289338bf",
+    "src/dccp/data/scenarios/SCENARIO-018.heldout-metabolic-vascular.json": "91ebdec1c0c654b5fccde5017b1314ad4ffb70ed8e1acc7effa850e09b2cbd21",
+    "src/dccp/data/scenarios/SCENARIO-019.heldout-delayed-structure.json": "647061d47b3564d5bd2d9783bdacbabde3403698a5d7c15371bac91d4bc7f723",
+    "src/dccp/data/scenarios/SCENARIO-020.host-ood-interferon-border.json": "d0c66b2c59a9abfb250224ee0e3777aff249225e453fb136d150bb5a7067b7e1",
+    "src/dccp/data/scenarios/SCENARIO-021.host-ood-maturity-discordant.json": "4777b88a60eb0370509e9bfa8de20f6416ce178b7731dbf9eb17e220bb4dad42",
+    "src/dccp/detectors.py": "b484d4d26228f879ce026bd8a43b0e62eb4f043e135b950d0cfb66b408a311f6",
+    "src/dccp/evaluate.py": "bca2d94efc591ed0b2ffb229df873121a26349050a39fb647607f52e594d935b",
+    "src/dccp/evaluation_protocol.py": "98f75f19fa74b2057d5516616d98c6fd91367d7efd62b57e37da2ed7a3640f4d",
+    "src/dccp/fingerprint.py": "0c4d4e78d3146821ab1a8d3c25e27548723ad4e6d2163afa6464730bb8aa361e",
+    "src/dccp/host_features.py": "0a72617658004d384d28fa5dabd5434b6677a7703fd60f5319672aa980d01645",
+    "src/dccp/host_modules.py": "516f01e00f4a9f16c505f6fef07658e561dba80e4125a937b2913613f987e992",
+    "src/dccp/ingest.py": "1da8bcad6bfd84acbb4294fa367fc075a56b7e033c6e8eb2fa0e4c43d9eec852",
+    "src/dccp/integrity.py": "3e1a5d01ec3755e9ecfcd8ee32b936c6c73d3c34440d78b4f790937d91ab3e69",
+    "src/dccp/library.py": "4d818dc5a4c53cb6c0976140a1e2168f8af61f12e85c6fd732213001f4f7eac1",
+    "src/dccp/omics_map.py": "2456673f183242cbb99c6f5d650faa6f0841ad6a5e0f188a77f804b29928dc1a",
+    "src/dccp/provenance.py": "1466acef71325b49bba2f7b504d1bdacd311ca3634672646b768af2a9ee98daf",
+    "src/dccp/provenance_v2.py": "07a0c5ff2799c469aab724d4dba8631bab0e65282935df6ab320754cd367c2d4",
+    "src/dccp/recovery.py": "a441cc0c19cc46847eb543df098d6873f44620c4b07ea3884a4e1325bc3c567e",
+    "src/dccp/registry.py": "29f5ddf312b6c4bb46e4c2a170f7ea5a6c9549a1472e5c9e892db98c73609116",
+    "src/dccp/release_gate.py": "877986c061ecb77606ceaa67560633359e9f741b64fc0f190e24488fbc05755e",
+    "src/dccp/scenario.py": "a753cc866c21c2c7a03112838b248d0376506195878deafa13315cf2d1d819e1",
+    "src/dccp/serialization.py": "a217d60079b1f82e0957d90c4c605d0c0e9d78e68c1bc28e9931657bf699edd7",
+    "src/dccp/surrogate.py": "3ac813c428380fc626bff527d7e6cca8cc8a18b14c89798cb4e7882884acbf13",
+    "validation/data/GSE240848_host_subset.json": "13b92e4af2690b5c09e026d02eb60bbdcb2b34113bdab62b35744833bb8c4874"
+  },
+  "version": "0.4.0"
+}

@@ -1,4 +1,5 @@
 """Release-readiness gates for challenge sets and benchmark artifacts."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,10 +15,16 @@ def release_gate(
     base_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """Validate registry structure and optionally verify referenced files."""
+    if not isinstance(registry, dict):
+        return {"passed": False, "n_entries": 0, "failures": [{"reason": "invalid_registry"}]}
     entries = registry.get("entries")
     failures: list[dict[str, Any]] = []
     if not isinstance(entries, list) or not entries:
-        return {"passed": False, "n_entries": 0, "failures": [{"scenario_id": None, "reason": "empty_registry"}]}
+        return {
+            "passed": False,
+            "n_entries": 0,
+            "failures": [{"scenario_id": None, "reason": "empty_registry"}],
+        }
 
     seen: set[str] = set()
     manifest_files: list[dict[str, str]] = []
@@ -37,12 +44,16 @@ def release_gate(
             failures.append({"scenario_id": scenario_id or None, "reason": "missing_path"})
         digest = str(entry.get("content_sha256", "")).strip().lower()
         if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
-            failures.append({"scenario_id": scenario_id or None, "reason": "missing_or_invalid_fingerprint"})
+            failures.append(
+                {"scenario_id": scenario_id or None, "reason": "missing_or_invalid_fingerprint"}
+            )
         elif path:
             manifest_files.append({"path": path, "sha256": digest})
-        if require_all_audited and not bool(entry.get("audit_passed", False)):
+        if require_all_audited and entry.get("audit_passed") is not True:
             failures.append({"scenario_id": scenario_id or None, "reason": "audit_failed"})
 
+    if "n_entries" in registry and registry["n_entries"] != len(entries):
+        failures.append({"reason": "entry_count_mismatch"})
     # Preserve the metadata-only API when no base directory is supplied.
     if base_dir is not None and not failures:
         base = Path(base_dir).resolve()
@@ -62,7 +73,33 @@ def release_gate(
         except ValueError:
             failures.append({"scenario_id": None, "reason": "unsafe_registry_root"})
         else:
+            from .audit import audit_scenario
+            from .serialization import read_json
+
+            for entry in entries:
+                path = (root / entry["path"]).resolve()
+                if path.is_file():
+                    try:
+                        payload = read_json(path)
+                        scenario = payload.get("scenario", payload)
+                        audit = audit_scenario(scenario)
+                        if scenario.get("scenario_id") != entry["scenario_id"] or not audit.passed:
+                            failures.append(
+                                {
+                                    "reason": "content_audit_or_identity_failed",
+                                    "path": entry["path"],
+                                }
+                            )
+                    except (OSError, ValueError, TypeError, AttributeError):
+                        failures.append({"reason": "content_unreadable", "path": entry["path"]})
             for issue in verify_file_hashes(manifest, base):
-                failures.append({"scenario_id": None, "reason": issue.kind, "path": issue.path, "detail": issue.detail})
+                failures.append(
+                    {
+                        "scenario_id": None,
+                        "reason": issue.kind,
+                        "path": issue.path,
+                        "detail": issue.detail,
+                    }
+                )
 
     return {"passed": not failures, "n_entries": len(entries), "failures": failures}

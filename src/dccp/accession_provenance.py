@@ -51,7 +51,13 @@ def evidence_bundle_for_accessions(accessions: Sequence[str]) -> dict[str, Any]:
             linked.append(by_acc[accession])
         else:
             missing.append(accession)
-            linked.append({"accession": accession, "digest": accession_digest(accession), "status": "not_in_panel"})
+            linked.append(
+                {
+                    "accession": accession,
+                    "digest": accession_digest(accession),
+                    "status": "not_in_panel",
+                }
+            )
     bundle = {
         "accessions": normalized,
         "records": linked,
