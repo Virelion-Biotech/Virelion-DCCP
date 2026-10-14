@@ -2,6 +2,21 @@
 
 DCCP is a defensive computational challenge platform for human cardiac models. It constructs, audits, assesses, and materializes defensive challenge scenarios represented as phenotypic consequence profiles. It tests detection, characterization, out-of-distribution recognition, and host-resilience recovery without recreating an underlying biological threat.
 
+
+<!-- VALIDATION_PRODUCT_STATUS:BEGIN -->
+## Validation and product completion status
+
+**Reviewed 2026-10-14; implementation base `1b10db187acd`.** **Status: Data integrity/readiness only; empirical severity qualification blocked.** This is an evidence-backed scope assessment, not a percentage-complete estimate or a declaration that the product is finished.
+
+| Area | Current evidence / remaining gate |
+|---|---|
+| Software / operational checks | Automated test sources and CI definitions are present; this documentation audit does not report a new algorithm/data-validation run. |
+| Scientific or domain evidence | The returned GSE240848 run completed in 93.13 s: 32,623 features × 48,637 cells, 62,845,195 nonzeros; the 16-cell/54-marker technical subset was reproduced. All 17 exported payload hashes match. Design-scenario detector checks are computational controls, not measured disease performance. |
+| Remaining for the declared product scope | Resolve animal/sample/condition mapping and independent severity labels; lock host-axis calibration and a subject-disjoint empirical benchmark; qualify OOD and recovery endpoints on independent host evidence. |
+
+Evidence and limits: [repository report](validation/colab_gse240848_2026_10_14/REVIEW.json). The [organization status index](https://github.com/Virelion-Biotech/Virelion-HeartTwin/blob/main/docs/STACK_VALIDATION_STATUS.md) separates software, numerical, data-readiness and empirical qualification. Code/schema execution or a completed download is not a substitute for endpoint-specific validation.
+<!-- VALIDATION_PRODUCT_STATUS:END -->
+
 ## What it contains
 
 - Scenario loading, schema validation, and policy auditing.

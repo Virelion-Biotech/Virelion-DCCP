@@ -1,0 +1,7 @@
+{
+  "blocked_endpoints": [
+    "Rat ischemia/reperfusion matrix supports ingestion checks; no verified independent animal mapping and orthogonal DCCP severity labels. Pooling cells does not create biological replicates."
+  ],
+  "empirical_validation": false,
+  "status": "READINESS_ONLY"
+}
