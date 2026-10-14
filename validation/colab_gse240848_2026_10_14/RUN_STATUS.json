@@ -1,0 +1,34 @@
+{
+  "error": null,
+  "input_receipts": {
+    "data/GSE240848_barcodes.tsv.gz.receipt.json": {
+      "producer_algorithm": "sha256",
+      "producer_checksum": "9ac55cdd427595695ecca1ee4040f648e453ed1a4b49e12aed1bf41ddc3b6ff9",
+      "sha256": "9ac55cdd427595695ecca1ee4040f648e453ed1a4b49e12aed1bf41ddc3b6ff9",
+      "size": 242732,
+      "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE240nnn/GSE240848/suppl/GSE240848_barcodes.tsv.gz"
+    },
+    "data/GSE240848_features.tsv.gz.receipt.json": {
+      "producer_algorithm": "sha256",
+      "producer_checksum": "3c101c5ce7eb5db2423f6fcf2727d4de5ffa1fc527bb7022b70299c28e58b748",
+      "sha256": "3c101c5ce7eb5db2423f6fcf2727d4de5ffa1fc527bb7022b70299c28e58b748",
+      "size": 289781,
+      "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE240nnn/GSE240848/suppl/GSE240848_features.tsv.gz"
+    },
+    "data/GSE240848_matrix.mtx.gz.receipt.json": {
+      "producer_algorithm": "sha256",
+      "producer_checksum": "58a0239397567f06b227ff015df257a358524bba5e51f1a51b5fb06d1bf2dd6d",
+      "sha256": "58a0239397567f06b227ff015df257a358524bba5e51f1a51b5fb06d1bf2dd6d",
+      "size": 235355807,
+      "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE240nnn/GSE240848/suppl/GSE240848_matrix.mtx.gz"
+    }
+  },
+  "protocol_sha256": "45a083595fc4e68a0e40c12c2c985a43fe2e1cf88768fb58ce7a52d2f004238a",
+  "scientific_validation": "NOT_ESTABLISHED_BY_EXECUTION",
+  "scope": "Download all source MTX/features/barcodes; validate every coordinate/count and nnz; reproduce native 16-cell technical subset.",
+  "seconds_this_session": 93.13304220900011,
+  "source_pins": {
+    "Virelion-DCCP": "1b10db187acdfc150b06c7ec2ac0db3be141a50c"
+  },
+  "status": "READINESS_ONLY"
+}

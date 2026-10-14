@@ -1,0 +1,22 @@
+{
+  "review_date": "2026-10-14",
+  "status": "READINESS_ONLY",
+  "source_zip_sha256": "e936b099400f1b5d743df22ed859c67f173d02164d10855805345ad0ab5aa7f4",
+  "verified_payloads": 17,
+  "payload_hash_mismatches": [],
+  "matrix_shape": [
+    32623,
+    48637
+  ],
+  "matrix_nnz": 62845195,
+  "technical_subset_cells": 16,
+  "markers": 54,
+  "empirical_validation": false,
+  "raw_matrix_recomputed_by_this_review": false,
+  "source_implementation": "1b10db187acdfc150b06c7ec2ac0db3be141a50c",
+  "blockers": [
+    "verified independent animal/sample mapping",
+    "orthogonal severity labels",
+    "calibrated host-axis mapping and independent benchmark"
+  ]
+}

@@ -1,0 +1,2 @@
+COMMAND ["/content/11_DCCP_GSE240848_v1/venv/bin/python", "/content/11_DCCP_GSE240848_v1/Virelion-DCCP/scripts/fetch_host_subset.py"]
+{'shape': [32623, 48637], 'nnz': 62845195, 'selected_columns': 16, 'markers': 54}
