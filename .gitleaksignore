@@ -1,0 +1,4 @@
+# Exact false-positive fingerprints: reproducibility report SHA-256 digests, not credentials.
+a1c73685d2318b187ea050c1d49ee64eb411a604:validation/cpu/results.json:generic-api-key:335
+a1c73685d2318b187ea050c1d49ee64eb411a604:validation/cpu/results.json:discord-api-token:332
+a1c73685d2318b187ea050c1d49ee64eb411a604:validation/cpu/results.json:discord-api-token:350
