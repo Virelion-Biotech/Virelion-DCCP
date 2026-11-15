@@ -31,7 +31,7 @@ cardivex = [
   "virelion-cardivex @ git+https://github.com/Virelion-Biotech/Virelion-CardiVex.git@56c3a0d333adb4d6f2bedcc88e5e8a3e00ba8db7",
 ]
 cardisim = ["virelion-cardisim @ git+https://github.com/Virelion-Biotech/Virelion-CardiSim.git@0a7d732ecd426ebefb8d492ed065e1be1ee662c7"]
-test = ["pytest>=8", "pytest-cov>=5", "ruff>=0.16,<0.17"]
+test = ["pytest>=8", "pytest-cov>=5", "ruff>=0.16,<0.18"]
 validation = ["numpy>=1.26,<3", "build>=1"]
 
 [project.scripts]
